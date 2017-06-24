@@ -1,0 +1,81 @@
+\chapter{Conclusions} \label{chap:conclusions}
+
+This thesis project has been highly pleasing as it was possible to put in practice many of the concepts learned during the Vibot Masters while investigating cutting-edge techniques in a very interesting field like the development of driver assistance systems. It was also very important to understand, since the beginning of the project, the importance of semantically segmenting inner-city road scenes as a step towards the final goal of predicting the driver behavior. Although this masters project had to be concluded in only four months, satisfactory results have been achieved. This short period of time had to be efficiently distributed among research of the state of the art, investigation of new techniques, software implementation and report writing. Even if the initial planning of activities was not rigorously put into practice, it helped focus the efforts throughout the thesis so that all different aspects of this project have been given their deserved attention.
+
+The initial research of existing methods and state-of-the-art techniques has shown that significant improvements have been done in the last few years in the field of image segmentation and recognition. Not only important contributions have been done for the segmentation of general scenes but also in our more specific context of inner-city road scenes.
+
+The segmentation system implemented has been based on very up-to-date features and segmentation techniques, which had to be efficiently adapted taking into account our goal of driver-behaviour predicting. Some aspects of the implementation of the techniques used have been simplified due to our strict time constraints. However, these simplifications---like not sharing weak classifiers during boosting---have been carefully assessed so that the accomplishment of the main goals of the thesis project were not jeopardized.
+
+The quantitative as well as the qualitative results of the segmentation of the challenging CamVid database have fulfilled our expectations. Although we did not obtain results with the same quality as the state-of-the-art ones, parallel research~\cite{heracles:behavior} within the group in which this thesis was developed showed that they were good enough for predicting, in a basic way, the driver's behaviour. In this parallel work, state-of-the-art techniques have been applied to model the driver's behaviour based on the segmentation of the road scene. It has been noticed, by applying these techniques, that the quality of the behaviour prediction using the ground truth segmentations was not much better than the quality achieved using the segmentation from the system implemented in this master thesis. The conclusion is that, although the quality of the segmentation has an impact on the final quality of the behavior prediction, more effort has to be invested improving the behaviour prediction than the semantic segmentation itself.
+
+% This thesis project has been highly pleasing as it was possible to put in practice many of the concepts learned during the Vibot Masters while investigating cutting-edge techniques in a very interesting field like the development of driver assistance systems. It was also very important to understand, since the beginning of the project, the importance of semantically segmenting inner-city road scenes as a step towards the final goal of predicting the driver behavior. Last but not least, the feeling of having tried to contribute in the research of a system that may futurely save lives has been gratifying and exciting.
+
+\subsubsection{Future work}
+In an attempt to encourage the continuation of the work performed in this masters thesis, we propose some ideas that might help improve the quality of the segmentation system implemented:
+
+% \subsubsection{Explicit color modeling by expectation-maximization}
+% 
+% In the system developed for this thesis project, the color information of the images was implicitly modeled together with texture, as they were included in the feature vectors used to train the texture-layout classifiers. TextonBoost, though, uses an explicit color potential, modeled with Gaussian Mixtures. The interesting characteristic of their model is that it is calculated in \emph{test} time for each image being segmented. 
+% 
+% This is how this test-time color modeling works: the potentials are trained and a first segmentation without any color potential is obtained. With this first segmentation, the colors of the classes segmented are modeled by GMMs, which are then used, in a second segmentation iteration, to define the color potential. This algorithm is a kind of expectation-maximization, where we alternate between inferring class labeling $y$ by minimizing the energy function, and updating the color potential parameters. These iterations can be repeated a fixed number of times or until the labeled regions converge to a stable segmentation.
+% 
+% \subsubsection{Merging of color modeling with location potentials}
+% 
+% Since in our case the road scenes to be segmented are very structured, this reliable a priori location information could be used to find more discriminative Gaussian Mixture Models than those obtained using a standard EM algorithm like described above. The idea is to use the location potential to weight the contribution of each image pixel to the GMM. For instance, the region at the center bottom of the image, which we suppose, from the location potentials, belongs almost certainly to class `road', would contribute more to the color GMM of that class than those pixels that have been segmented as `road' but lie on uncertain regions. In this manner, we could more precisely model in test time the colors of classes, which may vary significantly from picture to picture. 
+
+\begin{itemize}
+ \item \emph{Depth-adaptive scaling of feature vectors}
+\end{itemize}
+
+In our semantic segmentation system, the feature vector defined in Eq.~\ref{eq:feature_vector} is obtained by convolution with the same filter bank for every image pixel $i$. Suppose, now, that we adapt the scale of the filter bank used for calculating the feature vector according to depth of pixel $i$ in the image. By doing so, we could, for example, represent the texture of a sidewalk in an image by one single feature vector cluster. Figure~\ref{fig:depth_adaptive_scaling} illustrates the working principle of the depth-adaptive scaling feature extraction. 
+
+\begin{figure}[htb]
+\centering{
+\includegraphics[scale=0.3,bb=0 0 1011 474]{figures/depth_adaptive_scaling.png}
+}
+\caption[Adaptive scaling]{Notice how the texture of the sidewalk changes its scale as it gets far from the car camera. If we could estimate depth information and use it to adapt the scale of our filter bank convolution, we would be able to cluster class features more appropriately. In the diagram, the blue circle represents a filter bank scale of 2,5 and the red circle a scale of 1. With such adapted scales, feature vectors all over the sidewalk would be very similar and easier to learn. This would be similarly valid for other classes.}
+\label{fig:depth_adaptive_scaling}
+\end{figure}
+
+The depth information necessary for this algorithm could be inferred from the same structure from motion techniques used to obtain the 3D cues described in section~\ref{subsec:3d_features}. It could be also inferred for every image in test-time by using an automatic scale recognition technique---like done in SIFT by finding the peak response of a multi-scale pyramid convolution. 
+% A third option is to create a static depth map for all images, like shown in Figure~\ref{fig:static_depth_map}, which represents---in a good approximation---different image depths with differents scales of gray.
+
+% \begin{figure}[htb]
+% \centering{
+% \includegraphics[scale=0.35,bb=0 0 480 360]{figures/static_depth_map.png}
+% }
+% \caption[Static depth map]{Static depth map for common inner-city road scenes. Notice how the grayscale levels vary exponentially as the pixels get close to the horizon. The map is biased to the left due to the fact that in Great Britain, where the CamVid database has been recorded, cars drive on the left side of the road.}
+% \label{fig:static_depth_map}
+% \end{figure}
+
+\begin{itemize}
+ \item \emph{Addition of more features}
+\end{itemize}
+
+One of the probable reasons why our results were not as good as those from Sturgess et al.~\cite{sturgess:road_scene}, which is the state-of-the-art in the field of road scene segmentation and classification, is because we did not use as many features as they did. They used, for instance, histograms of gradients, HoGs, to describe the orientation of local edges. By doing so, they could better discriminate fine detailed structures like signs, bicyclists, cars and so on. Sturgess et al. clustered these features separately from the textons, letting the boosting procedure decide, for each classifier, whether to use texton features or other features.
+
+% We tried to use SIFT descriptors concatenated with the texton features to improve the recognition of fine detailed classes. However, these features were not tested and tuned enough for us to obtain better results than we obtained without them.
+
+\begin{itemize}
+ \item \emph{Further optimization of C++ code}
+\end{itemize}
+
+State-of-the-art implementations are faster than ours. For instance, Sturguess et al. train their system with more images than we train ours and manage to segment an unseen image in 30 to 40 seconds while we need 3 minutes. As Figure~\ref{fig:segmentation_quality_x_weak_classifiers} suggests, the number of weak classifiers used to obtain a good segmentation could be reduced from 500 to around 200, this would make the classification much faster. We can also gain a lot of time by integrating the whole system in a single C++ program.
+
+% , in order to achieve the state-of-the-art efficiency we would probably need to further optimize our code.
+% Any calculation reduced in the main training loop may result in a significant time saving. For instance, replacing inside the main loop the function \emph{pow(x,2)} by \emph{x*x} reduced around 30\% our training time.
+% 
+% \subsubsection{Thorough tests with varying parameters}
+% 
+% After the implementation of the texture-layout potential, our system was not tested under many different sets of parameters. Better results would almost certainly be achieved if further segmentation experiments were done in order to fine tune the system.
+
+
+
+
+
+
+
+
+
+
+

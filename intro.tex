@@ -1,0 +1,32 @@
+\chapter{Introduction} \label{chap:intro}
+
+\section{Motivation} \label{sect:motivation}
+
+Within the Honda Research Institute Europe, the Attentive Co-Pilot project investigates a multi-function Advanced Driver Assistance System. It is desired and to be expected that, in the future, cars will autonomously respond to inapropriate actions taken by the driver. If he or she does not stop the car when the traffic lights are red or falls asleep and slowly deviates from the normal driving course, the car should trigger an emergency procedure and somehow warn the driver. A similar warning should come up, for example, if the driver gets distracted and the car in front inadvertently breaks, without the driver noticing it. It is a fact that most accidents happen because of inattentive drivers, who, for various reasons, lose concentration for as short as a fraction of second and end up controlling the car in an imprudent way.
+
+It would be even safer if the car had the capability of not only realizing it and warning the driver when they act imprudently, but also of taking over its own control and safely correcting the driver's wrong actions. Countless lives could be spared and much dammage avoided if such reliable Advanced Driver Assistance systems existed and were widely implemented. Computers are much more stable than humans and never lose the focus from the activity they have been designed to perform. They are, therefore, very promising candidates to become more and more actuating in safety concerns when we drive.
+
+If, however, this Advanced Driver Assistance System is to become responsible for saving lives, in a critical real-time context, it cannot afford to fail. In order to manage the extremely complicated task of building such an intelligent system, many smaller problems have to be successfully tackled. One of the main ones is related to understanding and successfully representing the environment in which the car is inserted. For that, number of sensors and input data can be used. Indeed, participants of the DARPA Urban Challenge~\cite{darpa:darpa}, which requires autonomous vehicles to drive through specific routes in a city, rely on annotated maps as well as on the use of a wide variety of sensors such as GPS, Radar, Lidar, inertial guidance systems and so forth.
+
+One of our aspirations, though, is to achieve the task of scene understanding and enviroment representation only by `seeing' the world, using an off-shelf camera mounted in the car. We humans prove in our daily life as drivers that this task is feasible---and for most of us even straightforward---using just our eyes, that is, relying solely on visual information.
+
+By ruling out the use of complicated equipment and sensing techniques like Radars or Lidars, we garantee that, once a reliable driver assistance system is achieved, it will be cheap enough to be highly scalable. Considering their great potential of increasing the safety of drivers---and therefore also of pedestrians, bicyclits, and all parties involved in the traffic---, such advanced driver assistance systems will most likely become an indispensable component, like today's seat-belts, and be installed by default in every car.
+
+\section{Segmentation importance} \label{sect:segmentation}
+
+A first step to understanding and representing the world surrounding the car is to segment the images acquired by the camera in meaningful regions. Meaningful regions should be understood as the regions that may have any influence in the behaviour of the driver, and, therefore, in the behaviour that the car should be able to learn. Examples of such regions, which can also be described as classes, are the road, pedestrians, bicyclists, other cars and so on. 
+
+The work described in this thesis aims at performing this task, exploring the most recent insights of researchers in the field, as well as long well known and recognized image processing and segmentation techniques.
+
+\section{Thesis outline} \label{sect:thesis_outline}
+
+This thesis is structured in five more chapters. In Chapter 2, Problem Definition, the main goal of the investigation done in this thesis project is illustrated and explained. Then the chosen Markov/Conditional Random Field approach is justified for the task at hand.
+
+Chapter 3 investigates the state of the art in the field of semantic segmentation and road scene interpretation. The cutting-edge algorithm TextonBoost is described in detail as it is used as a base for our own segmentation algorithm. 
+
+In Chapter 4, the methodology and implementation steps followed throughout the thesis project are detailed in a meaningful, complexity-growing order. The image processing techniques used, as well as their strengths and weaknesses at solving the problem proposed, are commented on.
+
+Chapter 4 shows the best results obtained for the CamVid database and also for the internal Honda image sequences. A comparison between these results and those obtained by the state of the art techniques mentioned in chapter 3 is performed.
+ 
+Finally, in Chapter 5 the conclusions of the thesis are presented and the areas in
+which future eforts should focus are explored.

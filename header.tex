@@ -1,0 +1,77 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% This is a sample header for a sample dissertation. Fill in the name,
+% and the other information. LaTeX will work out the table of
+% content, the list of figures and of tables for you.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newpage
+\thispagestyle{empty}
+
+% ******* Title page *******
+% **************************
+
+\vspace*{2cm}
+\begin{center}
+{\Large\bf MSc. Thesis -- Scene layout segmentation of traffic environments\\} \vspace{2cm} {\large
+Fernando Cervigni Martinelli\\
+\vspace{1cm}
+Honda Research Institute Europe GmbH}
+
+\end{center}
+
+\vspace{7cm}
+\begin{center}
+{\large A Thesis Submitted for the Degree of \\MSc Erasmus Mundus
+in Vision and Robotics (VIBOT) \\\vspace{0.3cm} $\cdot$ 2010
+$\cdot$}
+\end{center}
+\singlespacing
+
+
+%ABSTRACT
+\begin{abstract}
+At least 80\% of the traffic accidents in the whole world are caused by human mistakes. Whether drivers are too tired, drunk or speeding, most accidents have their root in the improper behavior of drivers. Many of these accidents would be avoided if cars were equipped with some kind of intelligent system able to detect wrong actions of the driver and autonomously intervene controlling the car.
+
+Such an advanced driver assistance system needs to be able to understand the car environment and, from that information, predict the expected behavior of the driver at every instant. In this thesis project we investigate the problem of scene and environment understanding by using only images from an off-the-shelf camera attached to the car.
+
+A system has been implemented that is capable of satisfactorily performing semantic segmentation and classification of road scene video sequences. The classes which are to be segmented can be easily defined as input parameters. Some important classes for the prediction of the driver behavior are, for example, `road', `sidewalk', `car', `building' and so on.
+
+Our system builds on cutting-edge supervised segmentation and classification techniques that take into account information such as color, location, texture and also spatial context between classes. These cues are integrated within a Conditional Random Field model, which offers several practical advantages in the domain of image segmentation and classification. The CamVid database, which contains challenging inner-city road video sequences with very precise ground truth, has been used for assessing the quality of our segmentation and for the comparison with the state of the art.
+\vspace*{5cm}
+
+
+
+\begin{center}
+\begin{quote}
+\it Everything should be made as simple as possible, but not simpler\,\ldots
+\end{quote}
+\end{center}
+\hfill{\small Albert Einstein}
+
+\end{abstract}
+
+\doublespacing
+
+%\pagestyle{empty}
+\pagenumbering{roman}
+\setcounter{page}{1} \pagestyle{plain}
+
+
+\tableofcontents
+
+\listoffigures
+% \listoftables
+
+\chapter*{Acknowledgments}
+\addcontentsline{toc}{chapter}
+         {\protect\numberline{Acknowledgments\hspace{-96pt}}}
+
+I would like to thank above all my family for the constant support. They are always with me, even though they live on the other side of the Atlantic ocean. 
+
+My heartly thanks to my supervisors at Honda Jannik Fritsch, who has been so nice and given me all the support I needed, and Martin Heracles, who has carefully revised this thesis report and given precious advice all along these four months. For his help with the iCub platform and for providing me with his essential CRF code, I would like to sincerely thank Andrew Dankers.
+
+I wish also to thank my supervisor, Prof. Fabrice Meriaudeau, and all professors of the Vibot Masters. It is hard to fathom how much I learned with you during these 2 years. Thanks also for offering this program, which has been an amazing and unforgettable life experience.
+
+Last but not least, I wish to thank all my Vibot mates, who have been a great company studying before exams or chilling at the bar.   
+
+\pagestyle{fancy}

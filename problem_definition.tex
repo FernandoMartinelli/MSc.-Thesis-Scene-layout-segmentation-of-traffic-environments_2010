@@ -1,0 +1,44 @@
+\chapter{Problem definition} \label{chap:problem_definition}
+
+\section{Combined segmentation and recognition} \label{sect:main_goal}
+
+The main goal of this thesis project is to investigate, implement and evaluate a system that performs segmentation of road scene images including a classification of the different object classes involved. More specifically, each input color image $x \in G^{M\times N\times 3}$, where $G = \{ 0, 1, 2, \cdots, 255\}$ and $M$ and $N$ are the image height and width, respectively, must be pixel-wise segmented. That means that each pixel $i$ of the image has to be assigned one of $N$ pre-defined classes or labels, of a set $\mathcal L = \{ l_1, l_2, l_3, \cdots, l_N\}$. In mathematical terms, the segmentation investigated can be defined as a function $f$ that takes the color image $x \in G^{M\times N\times 3}$ and returns a label image $f(x) = y \in \mathcal L^{M\times N}$, also called a labeling of $x$:
+
+This is achieved by supervised training, which means that the system is given labeled training images, from which it should learn in order to subsequently segment new, unseen images. According to the state of the art researchers, supervised segmentation techniques yield better results than unsupervised techniques (see Chapter~\ref{chap:state_of_the_art}). This is not surprising, since unsupervised segmentation techniques do not have ground truth information from which to \emph{learn} semantic properties, hence can only segment the images based on purely data-driven features.
+
+% The system should also be flexible enough as to, by simple adjustment of initial parameters, consider an arbitrarily defined set of classes. Of course, this arbitrary label set definition must be coherent with the training images ground truth, that is, the ground truth must have the defined classes labeled. 
+
+Figure~\ref{fig:ideal_segmentation} shows a typical inner-city road scene as considered in this thesis project, as well an ideal segmentation, obtained by manual annotation. The example is taken from the CamVid database~\cite{brostow:camvid}, which is a recently proposed image database with high-quality, manually-labeled ground truth which we use for training our system. The images have been acquired by a car-mounted camera, filming the scene in front of the car while driving in a city. More detail about the CamVid dataset is given in Chapter 5.
+
+\begin{figure}
+\centering{
+\begin{tabular}{cc}
+\includegraphics[height=4cm]{figures/road_scene_example.eps} &
+\includegraphics[height=4cm]{figures/road_scene_example_segmented.eps}\\
+(a)&(b)
+\end{tabular}
+}
+\caption[Example of ideal segmentation]{(a) An example of a typical inner-city road scene extracted from the CamVid database. (b) The corresponding manually labeled ground truth, taking into account classes like `road', `pedestrian', `sidewalk' and `sky', among others. The goal of the segmentation system to be implemented is to produce, given an image (a), an automatic segmentation that is as close as possible to the ground truth (b).}
+\label{fig:ideal_segmentation}
+\end{figure}
+
+Theoretically, it would be ideal if the segmentation algorithm proposed could precisely segment all 32 classes annotated in the CamVid database. However, the more classes one tries to segment the more challenging and time-consuming the problem becomes. Although our system is supposed to be able to segment an arbitrary set of classes, as long as they are present in the training database, a compromise between computational efficiency and the number of classes to segment has to be reached. More importantly, many of the classes defined in the CamVid database have little if any influence at all on the behaviour of the driver. Bearing this in mind, the segmentation algorithm should be optimized and tailored towards the most behaviorly relevant classes.
+
+Furthermore, a related study recently conducted in the ACP Group suggests that, in order to achieve a good prediction of the driver's behavior, more effort should be invested in how to use such a segmentation of meaningful classes in terms of segmentation-based features rather than in precisely segmenting a vast number of classes that may not influence, after all, how the driver controls the car~\cite{heracles:behavior}.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

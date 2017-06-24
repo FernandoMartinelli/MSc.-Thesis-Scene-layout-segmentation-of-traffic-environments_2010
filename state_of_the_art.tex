@@ -1,0 +1,94 @@
+\chapter{State of the art} \label{chap:state_of_the_art}
+
+\section{Basic features for segmentation} \label{sect:basic_features}
+Scene understanding and labeling of regions of interest in images is a recurrent computer vision problem. The most simple methods, like~\cite{saber:color} tackle this problem by relying solely on color features, which can be modeled as histogram distributions or by Gaussian Mixture Models (GMMs). The use of GMMs to model colors in images has also proven very efficient in binary segmentation problems, as shown by Rother et al~\cite{rother:grab_cut}. In such problems, one often wants to separate the foreground from the background for image editing, object recognition and so on. When possible, user interaction can be very useful to refine the results by giving important feedback after the initial automatic segmentation (see Figure~\ref{fig:grab_cut}).
+
+\begin{figure}[htb]
+        \centering
+        \epsfxsize=4cm
+        {\epsfbox{figures/interp.eps}}
+\caption{Segmentation achieved by GrabCut using color GMMs and user interaction}
+\label{fig:grab_cut}
+\end{figure}
+
+However, in most cases, either the volume of images to segment is prohibitive or the real time nature of the segmentation prevents any user interference at all.
+
+Along with color, texture information is often considered and can bring significant improvement to the segmentation accuracy, as in~\cite{feng:color_tex}, where graylevel texture features were combined to color ones. Nowadays, most if not all the research effort on segmentation deals invariably with texture information. This can be extracted and modeled in many ways, such as:
+
+\begin{enumerate}
+\item \emph{Statistical Models,} among which we can mention co-occurrence matrices.
+
+\item \emph{Filter bank convolution,} where the image is convolved with a carefully selected set of filter primitives, usually composed of gaussians, gaussian derivatives and laplacians.
+\end{enumerate}
+
+\section{Modeling and inference framework} 
+
+It is important to notice that the choice of image features, described in the previous section, is normally independent of the theoretical framework or machine learning technique applied for segmentation inference. One can, for instance, chose the very same features as in~\cite{feng:color_tex}, where belief networks are used, and process them instead using Markov Random Fields or Support Vector Machines.
+
+In recent years, amongst the various possibilities of modeling image features for segmentation inference, Conditional Random Fields (CRFs) have assumed an increasingly central role. CRFs have been introduced by Lafferty et al. in~\cite{lafferty:crf} and have ever since been systematically used in cutting-edge segmentation and classification approaches like TextonBoost~\cite{jamie:texton_boost}, image sequence segmentation~\cite{wang:dynamic_CRFs}, structure from motion segmentation~\cite{brostow:structure_from_motion} and traffic scene understanding~\cite{ess:traffic_segmentation}, to name a few. This new way of modeling features was mostly built up on the more widely known Markov Random Fields. 
+
+\subsection{Markov Random Field definition}
+
+In the Markov Random Field theory, an image can be described by a lattice $\mathcal S$ composed of sites $i$, which can be though of as the image pixels. The sites in $\mathcal S$ are related to one another via a neighbourhood system, which is defined as ${\mathcal N}=\{{\mathcal N}_i, i \in \mathcal S\}$, where ${\mathcal N}_i$ is the set of sites neighbouring $i$. Aditionally, $i \notin {\mathcal N}_i$ and $i \in {\mathcal N}_j \Longleftrightarrow j \in {\mathcal N}_i$. 
+
+Let $x$ denote a configuration of the lattice $\mathcal S$ belonging to the set of all possible configurations $\mathcal X$. In the image processing context, $x$ can be seen as an image, where each of the sites $i$ from the lattice $\mathcal S$ assumes one state $x_i$ in the set of possible states $\mathcal L = \{ l_1, l_2, l_3, \cdots, l_N\}$. If one thinks of a gray scale image with 8 bit-resolution, the set of possible states for each site (or pixel) would be defined as $\mathcal L = \{ 0, 1, 2, \cdots, 255\}$.
+
+A random field $\mathcal X$ is said to be an MRF on $\mathcal S$ with respect to a neighbourhood system $\mathcal N$ if and only if
+\begin{equation}
+P({\mathbf x})>0, \forall \mathbf x \in \mathcal X \textrm{, and}
+\end{equation}
+
+\begin{equation}
+P(x_i\vert x_{{\mathcal S}-\{i\}})=P(x_i\vert x_{{\mathcal N}_i}) 
+\end{equation}
+
+That means, firstly, that the probability of any defined image configuration must be greater than zero\footnote{This assumption is usually taken for convenience, as it, in practical terms, does not influence much the problem} and, secondly and most importantly, that the probability of a site assuming a given state just depends on the states of its neighboring sites. The latter statement is also known as the Markov condition.
+
+According to the Hammersley-Clifford theorem~\cite{besag:clifford_theorem}, an MRF like defined above can equivalently be characterized by a Gibbs distribution. Thus,
+
+\begin{equation}P({\mathbf x})=Z^{-1}\exp(-U(\mathbf x)), 
+\end{equation}
+
+where
+
+\begin{equation}Z=\sum_{{\mathbf x} \in \mathcal X}\exp(-U({\mathbf x}))
+\end{equation}
+
+is a normalizing constant called the partition function, and $U(x)$ is an energy function of the form
+
+\begin{equation} \label{energy_u} 
+U({\mathbf x})=\sum_{c \in \mathcal C}V_c({\mathbf x}),  
+\end{equation}
+
+which is the sum of clique potentials $V_c(x)$ over all possible cliques $\mathcal C$. A clique $c$ is defined as a subset of sites in $\mathcal S$ in which every pair of distinct sites are neighbours, except for single-site cliques. The value of $V_c(x)$ depends only on the local configuration of clique $c$.
+
+Now let us define, for each site $i$, a label $y_i$ belonging to a set of possible labels ${\mathcal L}=\{1, 2, \cdots, l\}$. In this manner, we can represent a segmentation such that each pixel $i$ belongs to one, and only one, label of the set $\mathcal L$.
+
+Since the pixel labels and the pixel states are correlated---for instance the label sky is more likely to have a bright state than a dark one---,we can again write the energy function in equation~\ref{energy_u}, taking now into account this conditional relationship. Thus,
+
+\begin{equation} \label{energy_u_cond} 
+U({\mathbf x,y})=\sum_{c \in \mathcal C}V_c(x,y),  
+\end{equation}
+
+We consider than that the pixel states x are observations, as they are known from the input image. Then we shall rewrite equation~\ref{energy_u_cond} as
+
+\begin{equation} \label{energy_u_cond} 
+U({\mathbf x|y})=\sum_{c \in \mathcal C}V_c(x,y),  
+\end{equation}
+
+and try to maximize the conditional probability on the set of all possible labels:..... 
+
+
+
+
+
+
+
+
+The main difference between MRFs and CRFs lies on the fact that MRFs are generative models, whereas CRFs are discriminative. In MRFs, the learned feature-label joint probability is represented as $p(x,y) = p(x|y)p(y)$, where $x$ are the observed features and $y$ their corresponding labels. The posterior probability over the labels given the features, $p(y|x)$, is expressed using the Bayes' rule. For CRFs, it is not required to generate prior distributions over the labels like for MRFs, as the posterior $p(y|x)$ is modeled directly. A detailed description of how this is done follows in section [xx].
+
+\section{Beyond color and texture} 
+
+Although color and texture may rather efficiently characterize image regions, them may, alone, be far from enough. For instance, even we humans may not be able to tell apart, when looking only at a local patch of an image, a blue sky from the walls of a blue building. The key aspect from which we humans naturally take advantage of, and that allows us to unequivocally understand scenes, is the context. Even if one sees a building wall painted with exactly the same color as the sky, one just knows that wall cannot be the sky because it is surrounded by windows.
+
+Therefore, computer vision researchers are now frequently looking beyond low-level features and are more interested in contextual issues~\cite{feng:color_tex, re:multiscale_CRF, kumar:DRF}.

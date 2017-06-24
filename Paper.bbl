@@ -1,0 +1,104 @@
+\begin{thebibliography}{10}
+
+\bibitem{besag:clifford_theorem}
+J.~Besag.
+\newblock Spatial interaction and the statistical analysis of lattice systems
+  (with discussion).
+\newblock {\em J. of Royal Statist. Soc.}, series B, 36(2):192-326, 1974.
+
+\bibitem{boykov:graph_cut}
+Y.~Boykov and M.-P. Jolly.
+\newblock Interactive graph cuts for optimal boundary and region segmentation
+  of objects in n-d images.
+\newblock {\em Computer Vision}, volume 1, pages 105-112, July 2001.
+
+\bibitem{brostow:structure_from_motion}
+G.~Brostow, J.~Shotton, J.~Fauqueur, and R.~Cipolla.
+\newblock Segmentation and recognition using structure from motion point
+  clouds.
+\newblock {\em ECCV}, 2008.
+
+\bibitem{brostow:camvid}
+G.~J. Brostow, J.~Fauqueur, and R.~Cipolla.
+\newblock Semantic object classes in video: A high-definition ground truth
+  database.
+\newblock {\em Pattern Recognition Letters}, 30(2):88-97, 2009.
+
+\bibitem{darpa:darpa}
+DARPA.
+\newblock Darpa urban challenge rulebook.
+\newblock
+  \url{http://www.darpa.mil/GRANDCHALLENGE/docs/Urban_Challenge_Rules_102707.p%
+df}.
+
+\bibitem{feng:color_tex}
+X.~Feng, C.~Williams, and S.~Felderhof.
+\newblock Combining belief networks and neural networks for scene segmentation.
+\newblock {\em IEEE Transactions on Pattern Analysis and Machine Intelligence},
+  24(4):467-483, April 2002.
+
+\bibitem{hartley:reconstruction_techniques}
+R.~Hartley and A.~Zisserman.
+\newblock Multiple view geometry in computer vision.
+\newblock {\em Cambridge University Press}, 2003.
+
+\bibitem{re:multiscale_CRF}
+X.~He, R.~Zemel, and M.~Carreira-Perpinan.
+\newblock Multiscale conditional random fields for image labeling.
+\newblock {\em IEEE International Conference on Computer Vision and Pattern
+  Recognitions}, volume 2, pages 695-702, 2004.
+
+\bibitem{heracles:behavior}
+M.~Heracles, F.~Martinelli, and J.~Fritsch.
+\newblock Vision-based behavior prediction in urban traffic environments by
+  scene categorization.
+\newblock {\em British Machine Vision Conference (BMVC) - Submitted}, 2010.
+
+\bibitem{Kass88snakes:active}
+Michael Kass, Andrew Witkin, and Demetri Terzopoulos.
+\newblock Snakes: Active contour models.
+\newblock {\em INTERNATIONAL JOURNAL OF COMPUTER VISION}, 1(4):321--331, 1988.
+
+\bibitem{malik:filter_bank}
+T.~Leung and J.~Malik.
+\newblock Representing and recognizing the visual appearance of materials using
+  three-dimensional textons.
+\newblock {\em PIJCV}, 43(1):2944, 2001.
+
+\bibitem{petillot:seabed}
+N~Pican, E~Trucco, M~Ross, DM~Lane, and Y~Petillot.
+\newblock Texture analysis for seabed classification: Co-occurrence matrices vs
+  self-organizing maps.
+\newblock {\em IEEE}, 1998.
+
+\bibitem{rother:grab_cut}
+C.~Rother, V.~Kolmogorov, and A.~Blake.
+\newblock Grabcut - interactive foreground extraction using iterated graph
+  cuts.
+\newblock {\em ACM Transactions on Graphics}, 23(3):309-314, August 2004.
+
+\bibitem{saber:color}
+E.~Saber, A.~Tekalp, R.~Eschbach, and K.~Knox.
+\newblock Automatic image annotation using adaptive color classification.
+\newblock {\em Graphical Models and Image Processing}, 58(2):115-126, 1996.
+
+\bibitem{jamie:texton_boost}
+J.~Shotton, J.~M. Winn, C.~Rother, and A.~Criminisi.
+\newblock Textonboost: Joint appearance shape and context modeling for
+  multi-cleass object recognition and segmentation.
+\newblock {\em ECCV}, volume 1, pages 1-15, 2006.
+
+\bibitem{sturgess:road_scene}
+P.~Sturgess, K.~Alahari, L.~Ladicky, and P.~Torr.
+\newblock Combining appearance and structure from motion features for road
+  scene understanding.
+\newblock {\em British Machine Vision Conference (BMVC)}, 7 - 10, September
+  2009.
+
+\bibitem{varma:mr8}
+M.~Varma and A.~Zisserman.
+\newblock Classifying images of materials: Achieving viewpoint and illumination
+  independence.
+\newblock {\em ECCV}, volume 3, pages 255-271, 2002.
+
+\end{thebibliography}

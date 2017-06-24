@@ -1,0 +1,270 @@
+\chapter{Results} \label{chap:results}
+
+In this chapter, we investigate the performance of our semantic segmentation system on the challenging CamVid dataset and compare our results with existing work. Firstly, we show preliminary results obtained with the texture features described in Section~\ref{methodology:texture_pot} without considering any context. We then analyse our final model with the context features (texture-layout features) described in Section~\ref{sec:texture_layout_potential}. The effect of different aspects and parameters of the model is discussed before we present the best results obtained and analyse them quantitatively and qualitatively.
+
+\section{Preliminary results without context features} \label{sec:result_no_context}
+
+Figure~\ref{fig:confusion_no_weight} shows the confusion matrix of the segmentation of approximately 200 pictures, with classifiers trained on 140 other pictures, all randomly taken from the CamVid database. For this segmentation experiment, 500 training feature vectors have been randomly chosen per training image. The segmentations have been computed by minimization of Eq.~\ref{eq:texture_potential} which does not include any context feature. Notice how sidewalks are almost not recognized at all. 
+
+ \begin{figure}[htb]
+\centering{
+\includegraphics[scale=0.4,bb=0 0 792 227]{figures/confusion_no_weight.png}
+}
+\caption[Confusion matrix before adaptive training]{Confusion matrix of segmentation experiment chosing random feature vectors for training the Adaboost classifiers. Each row shows what proportion of the ground truth classes has been assigned to each class by the classifiers. Class `others' is the union of all classes defined in the CamVid database except `street', `sidewalk' and `sky'. For an ideal segmentation, the confusion matrix would be equal to the identity matrix.}
+\label{fig:confusion_no_weight}
+\end{figure}
+
+The adaptive training procedure described in Section~\ref{subsec:adaptive_training} chooses for the training of the adaboost classifiers more examples of feature vectors from labels that are confused---like `road' and `sidewalk'---than from those who are easily recognized---like `sky'. The confusion matrix of Figure~\ref{fig:confusion_no_weight} shows the results of the segmentation of the first iteration---where all training vectors are chosen randomly---of this adaptive Adaboost training algorithm. After three iterations,  examples are selectively chosen and the confusion matrix of the segmentation results, shown in Figure~\ref{fig:confusion_with_weight}, shows much better discernment between classes that were initially mixed up.
+
+\begin{figure}[htb]
+\centering{
+\includegraphics[scale=0.4,bb=0 0 792 227]{figures/confusion_with_weight.png}
+}
+\caption[Confusion matrix after adaptive training]{Confusion matrix of segmentation after three iterations of the adaptive training. Initially, 65\% of class `sidewalk' was wrongly assigned to class `road', as compared to only 25\% with the adaptive learning. The percentage of class `sidewalk' correctly assigned also increased from 9\% to 61\%.}
+\label{fig:confusion_with_weight}
+\end{figure}
+
+Although the adaptive training procedure improved the segmentation quality, context information, as discussed in the next section, contributes to differentiate classes even better.
+
+\section{Final model using context features}
+
+Our final model includes the texture-layout potential (see Section \ref{sec:texture_layout_potential}). This model and its results are discussed in detail in the following sections.
+
+\subsection{Influence of number of weak classifiers} \label{sec:boosting_accuracy}
+
+As illustrated in Figure~\ref{fig:texture_layout_filter}, texture-layout filters work by exploring the contextual correlation of textures---and in our solution also color---between neighboring regions. Figure~\ref{fig:texture_layout_example_regions} shows the rectangular region $r$ of each of the first ten texture-layout features for the classifier of class `road'. Notice that the location distribution of the regions $r$ is slightly biased towars either the top half or the bottom half of the image. This comes, probably, from the fact that most of the correlations between textures present in class `road' and other textures happen in a vertical fashion: the road is normally below other classes.
+
+\begin{figure}[htb]
+\centering{
+\includegraphics[scale=0.6,bb=0 0 480 360]{figures/texture_layout_example_regions.png}
+}
+\caption[Example of texture-layout features]{$r$ regions of first ten weak classifiers composing the strong classifier for class `road'. The green dot in the middle is the pixel $i$ being classified and the blue rectangle represents the bounding box within which all the weak classifiers candidates are created. The bigger the bounding box, the farther the context can be modeled. The downside of defining a big bounding box is that, if the context near pixel $i$ is more discriminative, there is a lower probability of a weak classifier being generated in that region than for a smaller bounding box.}
+\label{fig:texture_layout_example_regions}
+\end{figure}
+
+By using a large number of rectangular regions, very good label contours can be be segmented. To illustrate the representation power of texture-layout features, Figure~\ref{fig:number_tex_lay} shows the segmentation results obtained by classifiers having different numbers of weak classifiers. 
+
+\begin{figure}[htb]
+\centering{
+\begin{tabular}{ccc}
+\includegraphics[height=3cm]{figures/number_tex_lay_input_image.eps} &
+\includegraphics[height=3cm]{figures/number_tex_lay_1.eps} &
+\includegraphics[height=3cm]{figures/number_tex_lay_20.eps}\\
+(a)&(c)&(e)\\
+\includegraphics[height=3cm]{figures/number_tex_lay_label.eps} &
+\includegraphics[height=3cm]{figures/number_tex_lay_7.eps} &
+\includegraphics[height=3cm]{figures/number_tex_lay_250.eps}\\
+(b)&(d)&(f)
+\end{tabular}
+}
+\caption[Influence of number of weak classifiers on segmentation quality]{(a) Input imaged that was segmented by strong classifiers with different numbers of weak classifiers. The classifiers have been trained on (a). (b) Manually annotated ground truth with classes `road', `sidewalk', `others' and `sky'. (c-f) Segmentations using only the texture-layout potential in Eq~\ref{eq:texture_layout_potential}. In (c) only one weak classifier is used, in (d) 7 weak classifiers, in (e) 20 weak classifiers and, finally, in (f) 250 weak classifiers. Notice that the more weak classifiers there are, the more the segmentation approaches the target value (b). It is also interesting to observe how good the segmentation in (c) is, even if nothing but one weak classifier is used. 
+}
+\label{fig:number_tex_lay}
+\end{figure}
+
+As seen in section~\ref{subsec:boosting_training_procedure}, the boosting scheme used garantees that the target function, that is, the labeling of the training images, is approximated with an increasing number of weak classifiers. However, the quality of the segmentation of unseen, test images seems to have a clear upperboundary, like shown if Figure~\ref{fig:segmentation_quality_x_weak_classifiers}. 
+
+\begin{figure}[htb]
+\centering{
+\begin{tabular}{cc}
+\includegraphics[scale=0.5,bb=0 0 340 282]{figures/segmentation_quality_x_weak_classifiers_error.png} & 
+\includegraphics[scale=0.5,bb=0 0 340 282]{figures/segmentation_quality_x_weak_classifiers_accuracy.png}\\
+(a)&(b)
+\end{tabular}
+}
+\caption[Influence of number of weak classifiers on segmentation accuracy]{(a) Notice how the training error $J_{error}$ with respect to target function, that is, the ground truth labeling of the training images, decreases exponentially with the number of weak classifiers. (b) The segmentation accuracy for unseen test images, however, seems to be bound to 92\%. These accuracies have been calculated by segmenting the images only using the texture-layout potential. In this experiment no overfitting has occurred, but it is possible that, with other test images, the accuracy decreases again after a certain number of weak classifiers is reached.}
+\label{fig:segmentation_quality_x_weak_classifiers}
+\end{figure}
+
+The number of weak classifier candidates generated for every round of the boosting is a compromise between computation time and how discriminative the weak classifiers found are. Increasing the number of generated candidates increases proportionally the computation time for training. The quality of the segmentation increases, however, in a logarithmic fashion. At a given point, it is better to boost more weak classifiers than generating too many candidates and boosting just a few of them. Tests showed that 1000 weak classifier candidates resulted in a good compromise between training time and texture-layout classifiers quality.
+
+\subsection{Influence of the different model potentials}
+
+Although all the different potentials included in the model contribute to the final quality of the segmentation, we observed that the most important contribution comes from the texture-layout potential. This potential alone correctly segments the bulk of the scene, lacking however coherent and smooth boundaries as this aspect is not explicitly modeled in the texture-layout features. The edge potential, on the other hand, is responsible for better delineation of boundaries by smoothing them and making them stick to existing edges on the input image. Although this does not contribute substantially in the overall pixel accuracy, it increases perceptual quality, making the segmentation much more natural to human observers, which is also useful for our final goal of driver behavior prediction. The location potential is also important to correct wrongly segmented regions by the texture-layout potential. This happens, for instance, when white, saturated regions on the image are assigned by the texture-layout potential to class `sky', even if those regions are located at the bottom of the image. Figure~\ref{fig:influence_of_potentials} shows how perceived segmentation quality and pixel-wise accuracy increase as we add the different potentials.
+
+\begin{figure}[htb]
+\centering{
+\begin{tabular}{ccc}
+\includegraphics[scale=0.3,bb=0 0 400 300]{figures/influence_of_potentials_a.png} & %original
+\includegraphics[scale=0.3,bb=0 0 400 300]{figures/influence_of_potentials_c.png} & %tex_lay
+\includegraphics[scale=0.3,bb=0 0 400 300]{figures/influence_of_potentials_e.png}\\ %tex_lay+edge
+(a)&(c)&(e)\\
+\includegraphics[scale=0.3,bb=0 0 400 300]{figures/influence_of_potentials_b.png} & %gt label 
+\includegraphics[scale=0.3,bb=0 0 400 300]{figures/influence_of_potentials_d.png} & %tex_lay+loc
+\includegraphics[scale=0.3,bb=0 0 400 300]{figures/influence_of_potentials_f.png}\\ %all
+(b)&(d)&(f)
+\end{tabular}
+}
+\caption[Influence of the different potentials on segmentation quality]{(a) Original image to be segmented. (b) Manually labeled ground truth provided by the CamVid dataset. (c) Segmentation obtained by using only the texture-layout potential, with overall accuracy of 90.7\%. (d) Segmentation obtained with texture-layout and location potentials. Notice how some pixels assigned as class `sidewalk' in (c) turn now into class `road' because of their location. The accuracy is increased to 91.3\%. (e) Segmentation obtained with texture-layout and edge potentials. Note how classes now have coherent and smooth boundaries, increasing the overall accuracy to 92.6\%. (e) Finally, the segmentation obtained with all potentials combined. Notice how the strengths are added, as the labeling is spatially coherent and has smooth boundaries. The final accuracy achieved is 92.9\%.}
+\label{fig:influence_of_potentials}
+\end{figure}
+
+\subsection{Influence of 3D features}
+The influence of the implementation of 3D features, described in Section~\ref{sec:3d_features_methodology}, was, due to time constraints, only tested for the 4-class set comprised of `road', `sidewalk', `others' and `sky'. After the concatenation of the 3D features to the feature vector, no improvement in the quality of the segmentations has been noticed. This might be due to the fact that the classes which were mostly mixed, `road' and `sidewalk', do not have significantly different 3D features. Therefore, in the case of this 4-class set, no discriminative cues have been added through the combination of the 3D features.
+
+Nonetheless, if we are to consider more classes in the segmentation, the 3D features could be useful as the additional classes may have quite different 3D characteristics. For instance, signs, pedestrians and bicyclists can stand out in comparison to buildings behind them because they are much closer to the car camera.
+
+Another possible way of improving the contribution of the 3D features would be clustering them separetely from the appearance features described. This technique has been applied by Sturgess et al.
+
+\section{CamVid sequences}
+
+The CamVid database is composed of four sequences of inner-city road scenes. Three of them have been recorded during the day, with good sun illumination, and the fourth one as it was getting dark. The four sequences are described in table~\ref{table:camvid_sequences}.
+
+\begin{table}
+ \centering
+\begin{tabular}{ | l | c | r | }
+\hline			
+  Type & Seq. Name & \# Images\\
+  \hline	
+  \hline	
+  Day & Seq05VD & 171 \\
+  \hline	
+  Day & 0016E5 & 305 \\
+  \hline	
+  Day & 0006R0 & 101 \\
+  \hline	
+  Dusk & 0001TP & 124\\
+\hline
+\end{tabular}
+\label{table:camvid_sequences}
+\end{table}
+
+We next show the results obtained using each of the sequences separately. For each of them, the first half of the sequence has been used for training and the second half for testing. The most important parameters\footnote{The system devised has many more parameters than listed. However, they have turned out to have less influence in the final results than those mentioned here. This was a sign of robustness achieved by the developed system.} have been set as follows:
+
+\begin{itemize}
+\item \emph{Number of clusters for textonization:} 30;
+\item \emph{Number of weak classifiers:} 500;
+\item \emph{Number of weak classifier candidates:} 1000;
+\item \emph{Resize factor of original images:} 0.5;
+\item \emph{Bounding box of texture-layout filters:} 300 $\times$ 300 pixels;
+\end{itemize}
+
+Initially, we intended to automatically tune the parameters by developing a test bench that would automatically run tests and change input parameters trying to find maxima in the segmentation quality---for instance by judging quality by the overall pixel accuracy. Although this is in theory an interesting idea, it turns out to be impractical, as we need hours to complete a single segmentation experiment. All system parameters, including those cited above, have then been manually tweaked to yield the best results possible.
+
+Two different label sets have been tested and are separately described.
+
+\subsubsection{4-class set}
+Bearing in mind that the final goal of this segmentation system is to help predict the driver's behavior, a set with four of the most important classes have been defined: `road', `sidewalk', `others' and `sky'. The `road' is the most important of all, as it indicates the region where the car has freedom to drive. The sidewalk helps define in what direction the road follows its course, giving an important cue regarding the steering wheel behavior, that is, whether the driver should turn left, right or go ahead\footnote{If the behavior is to be predicted more precisely, other curve granularities can be defined, for example, sharp right, slight left and so on.}. Class `others' represents all sorts of obstacles, such as other cars, pedestrians, bicyclists, buildings and so forth. Class `sky' has been defined as it is very characteristic and easy to differentiate from all others.
+
+Figure~\ref{fig:conf_matrix_4_c} shows the overall accuracy and confusion matrices of the segmentation results for each of the four sequences of the CamVid dataset. As explained in section~\ref{subsec:adaptive_training}, the confusion matrices show for the ground truth classes in each row, what proportion was assigned to which label. The name of the labels assigned are indicated on the top of each column. Overall accuracy is calculated by dividing the number of pixels correctly assigned by the total number of pixels.
+
+\begin{figure}[htb]
+\centering{
+\begin{tabular}{c}
+\includegraphics[scale=0.4,bb=0 0 792 227]{figures/conf_matrix_4_c_VD.png}\\
+(a) \\
+\includegraphics[scale=0.4,bb=0 0 792 227]{figures/conf_matrix_4_c_E5.png}\\
+(b) \\
+\includegraphics[scale=0.4,bb=0 0 792 227]{figures/conf_matrix_4_c_R0.png}\\
+(c) \\
+\includegraphics[scale=0.4,bb=0 0 792 227]{figures/conf_matrix_4_c_TP.png}\\
+(d) \\
+\end{tabular}
+}
+\caption[Confusion matrices for 4-class set segmentation]{Confusion matrices and overall pixel accuracies for all sequences of the CamVid database. Notice that all overall accuracies have been above 90\%. Classes that are less present, for instance `sidewalk', have yielded the worst results. This is also caused by the fact that these smaller classes have more complicated forms---like narrow stripes in the case of sidewalks---which makes it easier to mix them with neighboring classes. In sequence `0006R0', which was mostly shot in a car parking lot, there are very few examples of class `sidewalk', which justifies the fact that the classifiers did not learn well enough to handle this class, resulting in a zero column in the confusion matrix (c).}
+\label{fig:conf_matrix_4_c}
+\end{figure}
+
+Some examples of segmentation from all four sequences in the CamVid dataset are shown in Figure~\ref{fig:segmentation_examples_4_c}.
+
+\begin{figure}[htb]
+\centering{
+\begin{tabular}{ccc}
+(a)&(b)&(c)\\
+\includegraphics[scale=0.25,bb=0 0 400 300]{figures/examples_4_c_1_original.png} &
+\includegraphics[scale=0.25,bb=0 0 400 300]{figures/examples_4_c_1_label.png} &
+\includegraphics[scale=0.25,bb=0 0 400 300]{figures/examples_4_c_1_segmentation.png}\\
+\includegraphics[scale=0.25,bb=0 0 400 300]{figures/examples_4_c_2_original.png} &
+\includegraphics[scale=0.25,bb=0 0 400 300]{figures/examples_4_c_2_label.png} &
+\includegraphics[scale=0.25,bb=0 0 400 300]{figures/examples_4_c_2_segmentation.png}\\
+\includegraphics[scale=0.25,bb=0 0 400 300]{figures/examples_4_c_3_original.png} &
+\includegraphics[scale=0.25,bb=0 0 400 300]{figures/examples_4_c_3_label.png} &
+\includegraphics[scale=0.25,bb=0 0 400 300]{figures/examples_4_c_3_segmentation.png}\\
+\includegraphics[scale=0.25,bb=0 0 400 300]{figures/examples_4_c_4_original.png} &
+\includegraphics[scale=0.25,bb=0 0 400 300]{figures/examples_4_c_4_label.png} &
+\includegraphics[scale=0.25,bb=0 0 400 300]{figures/examples_4_c_4_segmentation.png}\\
+\includegraphics[scale=0.25,bb=0 0 400 300]{figures/examples_4_c_5_original.png} &
+\includegraphics[scale=0.25,bb=0 0 400 300]{figures/examples_4_c_5_label.png} &
+\includegraphics[scale=0.25,bb=0 0 400 300]{figures/examples_4_c_5_segmentation.png}\\
+\includegraphics[scale=0.25,bb=0 0 400 300]{figures/examples_4_c_6_original.png} &
+\includegraphics[scale=0.25,bb=0 0 400 300]{figures/examples_4_c_6_label.png} &
+\includegraphics[scale=0.25,bb=0 0 400 300]{figures/examples_4_c_6_segmentation.png}\\
+
+\end{tabular}
+}
+\caption[Example of segmentations for 4-class set]{(a) Example of images from the CamVid dataset to be segmented. (b) Ground truth annotation for the 4 classes considered. (c) Our segmentation using all three potentials implemented: texture-layout, edge and location. Note that the third image, from the sequence `0006R0' has very little pixels from class `sidewalk'. This leads to insufficient learning and inexistence of pixels assigned to class `sidewalk' in our segmentations. Notice how, in the fourth image, which comes from the dusk sequence, the dark bumper of the car is confused with the dark road.}
+\label{fig:segmentation_examples_4_c}
+\end{figure}
+
+Considering the four classes mentioned above and the dusk image sequence, `0001TP', which has 124 images, our system took 6,3 hours to train and about one minute to segment each test image. The processor used was a Pentium 4, 3.20 Ghz with 1 gigabyte of RAM memory. It is important to notice that, within the one minute elapsed for the segmentation of each test image, a considerable amount of time---approximately 20 seconds---is spent by Matlab in writing the integral images to \emph{.txt} files and by the C++ program in reading them. Hence, a great deal of processing time could be reduced by integrating the whole system in the C++ platform.
+
+\subsubsection{11-class set}
+
+In order to be able to compare our system with the state-of-the-art and to use our segmentation to try to predict the driver behaviour similarly to Ess et al.~\cite{ess:traffic_segmentation}, we decided to use the same 11-class set as they did. This set is defined by classes `Building', `Tree', `Sky', `Car', `Sign-Symbol', `Road', `Pedestrian', `Fence', `Column-pole', `Sidewalk' and `Bicyclist'.
+
+Since the confusion matrices of the segmentation results for this 11-class set are 11$\times$11, Figure~\ref{fig:results_matrix_11_c} shows only their diagonal for each of the sequences considered.
+
+\begin{figure}[htb]
+\centering{
+\includegraphics[scale=0.5,bb=0 0 750 224]{figures/results_matrix_11_c.png}\\
+}
+\caption[Results for 11-class set segmentation]{Accuracy is again computed by comparing the ground truth pixels to the inferred
+segmentation. For each sequence we report individual class accuracies (the diagonal of the confusion matrix), the average accuracy of all classes, and the overall segmentation accuracy (column `Global'). The average accuracy measure applies equal importance to all
+11 classes, despite the widely varying class incidences, and is therefore a harder performance metric than the overall pixel accuracy. Notice how results vary between 81\%, for sequence `Seq05VD', and 66\% for sequence `0006R0'. Again, sequence `0006R0' has been the most difficult to segment as it has been recorded mostly in a parking lot, hence some classes are almost not present in it. Indeed, for this sequence, no example of class `bicyclist' was present in the training images, therefore the $*$. For overall quality comparison, the baseline obtained by chance segmentation would achieve a global accuracy of about 9\%.}
+\label{fig:results_matrix_11_c}
+\end{figure}
+
+Some examples of segmentation from all four sequences in the CamVid dataset are shown in Figure~\ref{fig:segmentation_examples_11_c}.
+
+\begin{figure}[htb]
+\centering{
+\begin{tabular}{ccc}
+(a)&(b)&(c)\\
+\includegraphics[scale=0.25,bb=0 0 400 300]{figures/examples_11_c_1_original.png} &
+\includegraphics[scale=0.25,bb=0 0 400 300]{figures/examples_11_c_1_label.png} &
+\includegraphics[scale=0.25,bb=0 0 400 300]{figures/examples_11_c_1_segmentation.png}\\
+\includegraphics[scale=0.25,bb=0 0 400 300]{figures/examples_11_c_2_original.png} &
+\includegraphics[scale=0.25,bb=0 0 400 300]{figures/examples_11_c_2_label.png} &
+\includegraphics[scale=0.25,bb=0 0 400 300]{figures/examples_11_c_2_segmentation.png}\\
+\includegraphics[scale=0.25,bb=0 0 400 300]{figures/examples_11_c_3_original.png} &
+\includegraphics[scale=0.25,bb=0 0 400 300]{figures/examples_11_c_3_label.png} &
+\includegraphics[scale=0.25,bb=0 0 400 300]{figures/examples_11_c_3_segmentation.png}\\
+\includegraphics[scale=0.25,bb=0 0 400 300]{figures/examples_11_c_4_original.png} &
+\includegraphics[scale=0.25,bb=0 0 400 300]{figures/examples_11_c_4_label.png} &
+\includegraphics[scale=0.25,bb=0 0 400 300]{figures/examples_11_c_4_segmentation.png}\\
+\includegraphics[scale=0.25,bb=0 0 400 300]{figures/examples_11_c_5_original.png} &
+\includegraphics[scale=0.25,bb=0 0 400 300]{figures/examples_11_c_5_label.png} &
+\includegraphics[scale=0.25,bb=0 0 400 300]{figures/examples_11_c_5_segmentation.png}\\
+\includegraphics[scale=0.25,bb=0 0 400 300]{figures/examples_11_c_6_original.png} &
+\includegraphics[scale=0.25,bb=0 0 400 300]{figures/examples_11_c_6_label.png} &
+\includegraphics[scale=0.25,bb=0 0 400 300]{figures/examples_11_c_6_segmentation.png}\\
+
+\end{tabular}
+}
+\caption[Example of segmentations for 11-class set]{(a) Example of images to be segmented. (b) Ground truth annotation for the 11 classes considered. (c) Our segmentation using all three potentials implemented: texture-layout, edge and location. Notice that some of the most important classes for the driver behavior prediction---like the road, cars, buildings and sidewalk---are still well recognized for the 11-class set. Unfortunately, other more fine structured classes like signs and pedestrians which are also important for the driver behavior prediction are not well recognized. Suggestions to overcome this problem are given in Chapter 6.}
+\label{fig:segmentation_examples_11_c}
+\end{figure}
+
+Considering the eleven classes mentioned above and the dusk image sequence, `0001TP', which has 124 images, our system took 16,5 hours to train and 3 minutes to segment each test image. The same Pentium 4, 3.20 Ghz processor with 1 gigabyte of RAM memory was used.
+
+\section{Comparison of proposed solution to state of the art}
+
+In order to be able to compare our results with the state of the art, we have used the same training and test split of the CamVid database as Sturgess et al.~\cite{sturgess:road_scene} and Brostow et al.~\cite{brostow:structure_from_motion}, which is shown in table~\ref{table:camvid_sequences}. These final results have been obtained by using images from the whole database in a single experiment, that is, images from day scenes as well as dusk scenes have been used together for training and testing. This is a good test for the generalization power of the segmentation system, giving also an insight on how invariant to lighting conditions and other varying parameters our features are. Figure~\ref{fig:comparison_to_state_of_the_art} shows our results in comparison to the results of Sturgess et al. and Brostow et al. using the same 11-class set detailed in the previous section.
+
+\begin{figure}[htb]
+\centering{
+\includegraphics[scale=0.5,bb=0 0 780 196]{figures/comparison_to_state_of_the_art.png}\\
+}
+\caption[Comparison to state of the art]{Comparison of our results with state-of-the-art road-scene segmentation systems from Sturgess et al.~\cite{sturgess:road_scene} and Brostow et al.~\cite{brostow:structure_from_motion}. Notice how, like in the results shown for the segmentation of each sequence separately, the fine detailed structures like `column-pole', `bicyclists' and `pedestrians' are almost not recognized at all in our system. Sturgess et al. obtain better results in these classes probably because they use more appropriate features to represent them, like Histogram of Gradients (HoGs), for instance. Brostow et al. use only structure from motion 3D cues, which have proven more robust to variations in scene lighting, yielding also very good results for most classes. According to the Sturgess et al. and Brostow et al., the use of shared weak classifiers for the training of the texture-layout classifiers improves the generalization power of the classification. The fact that we did not share weak classifiers in our training may have also been a reason why our results were in general worst than the state-of-the-art ones.}
+\label{fig:comparison_to_state_of_the_art}
+\end{figure}
+
+It is important to mention, though, that for time and memory constraints, the results we compared to the state of the art have been obtained using less weak classifiers (200 instead of the 500 used in the results shown previously) and also with only around 50\% of the images from the CamVid database. Our results would probably improve if we had used more weak classifiers (see Section~\ref{sec:boosting_accuracy}) and also all the images in the database.
+
+
+
+
+
+
+
+

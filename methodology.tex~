@@ -1,0 +1,401 @@
+\chapter{Methodology} \label{chap:methodology}
+
+\section{CRF framework}
+After thorough consideration of related work, CRFs have been deemed very suitable and up-to-date for dealing with the problem proposed in this thesis project. As discussed in section 2, conditional random fields allow the incorporation of a big variety of cues in a single, unified model. Moreover, state-of-the-art work in the field of image segmentation (see Section \ref{sec:TextonBoost}, TextonBoost) and also more specifically in the domain of inner-city road scene understanding (see Section \ref{sec:sturgess}, Sturgess et al.) has used CRFs. Sturgess et al. have been able to very successfully segment eleven different classes in road scenes, some of which being very important to our final goal of driver behavior prediction.
+
+\section{Location and edge potentials - preliminary model}
+
+Location and edge cues, as mentioned in~\ref{sec:features_for_segmentation}, are very meaningful and can significantly contribute to the quality of any segmentation. In our case, location cues are all the more important because we deal with a very spatially structured scene. The road will, for example, never be at the top of the image and the sky will never be at the bottom. We can then extract precious information as to where to expect our classes to be located on the picture.
+
+If, for a better understanding of the problem, we consider, at first, a model with just the location and edge potentials, then the energy function to be minimized in order to infer the most likely labeling becomes
+\begin{equation} \label{eq:location_edge_potentials}
+U(y|x,\theta) = 
+\sum_i
+\overbrace{\lambda(y_i,i;\theta_{\lambda})}^{location}
++ \sum_{(i,j)\in \varepsilon}\overbrace{\phi(y_i, y_j, g_{ij}(x);\theta_{\phi})}^{edge}
+\textnormal{.}
+\end{equation}
+The location potential is calculated based on the incidence, for all the training images, of each class at each pixel:
+\begin{equation}
+\lambda(y_i,i;\theta_{\lambda}) = \log \bigg( \frac{N_{y_i,i}+\alpha_\lambda}{N_{i}+\alpha_\lambda} \bigg)
+\end{equation}
+where $N_{y_i,i}$ is the number of pixels at position $i$ assigned class $y_i$ in the training images, $N_{i}$ is the total number of pixels at position $i$ and $\alpha_\lambda$ is a small integer to avoid the indefinition $\log (0)$ when $N_{y_i,i} = 0$ (we use $\alpha_\lambda = 1$). Figure~\ref{fig:loc_pots} illustrates the location potential of classes `road' and `sidewalk' in images from the CamVid database.
+
+\begin{figure}[htb]
+\centering{
+\begin{tabular}{cc}
+\includegraphics[scale=0.35,bb=0 0 480 360]{figures/loc_pot_road.png} &
+\includegraphics[scale=0.35,bb=0 0 480 360]{figures/loc_pot_sidewalk.png}\\
+(a)&(b)
+\end{tabular}
+}\caption[Examples of location potentials]{(a) Location potential of class `road', $\lambda(road,i;\theta_{\lambda})$. (b) Location potential of class `sidewalk', $\lambda(sidewalk,i;\theta_{\lambda})$. The whiter, the bigger the incidence of pixels from the corresponding class in the training images.}
+\label{fig:loc_pots}
+\end{figure}
+
+The pairwise edge potential $\phi$ has the form of a contrast sensitive Potts model~\cite{boykov:graph_cut} like defined in TextonBoost:
+\begin{equation} \label{eq:edge_potential}
+\phi(y_i, y_j, \textbf{g}_{ij}(\textbf{x});\theta_{\phi})=-\theta_{\phi}^T \textbf{g}_{ij}(\textbf{x})[y_i\ne y_j],
+\end{equation}
+with $[\cdot]$ the zero-one indicator function. The edge feature $\textbf{g}_{ij}$ measures the diference in color between the neighboring pixels, as suggested by~\cite{rother:grab_cut},
+\begin{equation}
+\textbf{g}_{ij}= 
+\begin{bmatrix}
+  \exp(-\beta \left \Vert x_i-x_j \right \|^2\\
+  1  
+\end{bmatrix}
+\end{equation}
+
+With the help of a noisy toy image, shown in Figure~\ref{fig:toy_example}a, we can see how location and edge potentials interact, resulting in a meaningful segmentation. In this example, we want to segment the toy image in three different classes, `background', `foreground-1' and `foreground-2'. Figures~\ref{fig:toy_example}b,~\ref{fig:toy_example}d and~\ref{fig:toy_example}f show the unary location potentials $\lambda(y_i,i;\theta_{\lambda})$ for classes `foreground-1', `foreground-2' and `background', respectively, at every pixel $i$~\footnote{The location potential of the class `background' is the complementary of the foreground classes potentials. That is, when either class `foreground-1' or `foreground-2' is likely, class `background' is unlikely, and vice-versa.}. A white pixel represents a high probability of a class being present at that pixel---which is equivalent to saying that the energy potential is low---impelling the function minimization to prefer labels where the pixels are white rather than black. Figure~\ref{fig:toy_example}c shows the edge potential calculated like in Eq.~\ref{eq:edge_potential}. The segmentation boundaries are more likely to be located where the edge potential is white. Figure~\ref{fig:toy_example}e shows the final segmentation obtained through the minimization of Eq.~\ref{eq:location_edge_potentials}.
+
+\begin{figure}[htb]
+\centering{
+\begin{tabular}{ccc}
+\includegraphics[height=3cm]{figures/toy_example_a.eps} &
+\includegraphics[height=3cm]{figures/toy_example_e.eps} &
+\includegraphics[height=3cm]{figures/toy_example_f.eps}\\
+(a)&(c)&(e)\\
+\includegraphics[height=3cm]{figures/toy_example_b.eps} &
+\includegraphics[height=3cm]{figures/toy_example_c.eps} &
+\includegraphics[height=3cm]{figures/toy_example_d.eps}\\
+(b)&(d)&(f)
+\end{tabular}
+}
+\caption[Toy example]{(a) Noisy toy image to be segmented. (c) Edge potential. (b,d,f) Location potentials of classes `foreground-1', `foreground-2' and `background', respectively. (e) Final segmentation inferred from the minimization of Eq.~\ref{eq:location_edge_potentials}.}
+\label{fig:toy_example}
+\end{figure}
+
+Note that the final segmentation correctly ignores the noise, as it is not present at the same pixels simultaneously in the edge and location potentials. The constant term in Eq.~\ref{eq:edge_potential}, which adds a given cost for any pixel belonging to a label boundary, helps suppress the appeareance of noisy, small foreground regions.
+ 
+\section{Texture potential model} \label{methodology:texture_pot}
+
+Although the segmentation of the toy example, obtained with location and edge potentials described in the last section, was robust against noise, the location potentials provided were very similar to the regions we wanted to segment. In real images, not only the location potentials are less correlated to the position of the labels, but there are also much more complex objects to be segmented that cannot be differentiated just by using location and edge potentials. The next step to a better segmentation is then modeling the texture information present in the images. We can represent this new potential by rewriting the energy function $U$ as:
+\begin{equation} \label{eq:texture_potential}
+U(y|x,\theta) = 
+\sum_i
+\overbrace{\lambda(y_i,i;\theta_{\lambda})}^{location}
++ \overbrace{\psi_i(y_i,\textbf{x};\theta_{\psi})}^{\textbf{texture}}
++ \sum_{(i,j)\in \varepsilon}\overbrace{\phi(y_i, y_j, g_{ij}(x);\theta_{\phi})}^{edge}
+\end{equation} 
+
+Note that the texture potential represents local texture only, i.e., it does not take into account context. It is merely a local feature. Context and layout are explored in Section~\ref{sec:texture_layout_potential}, where the use of simplified texture-layout filters is investigated.
+
+In order to represent the texture information of the images to segment, we opted, similarly to TextonBoost~\cite{jamie:texton_boost}, for the use of filter banks.
+By using an N-dimensional filter bank $F$, one obtains an N-dimensional feature vector, $f_x(i)$, for each pixel $i$. Each component of this vector is the result of the convolution of the input image converted to grayscale, $x$, and the corresponding filter shifted to the position of $i$:
+\begin{equation}
+f_x(i) = 
+\begin{bmatrix}
+(F_1 * x)\vert_i    \\
+(F_2 * x)\vert_i    \\
+  \vdots \\ 
+  (F_N * x)\vert_i
+\end{bmatrix}
+\end{equation} \label{eq:convolution}
+
+Equivalently, the result of the convolution of a N-dimensional filter bank with an image can be understood by considering the convolution of the image with each component of the filter at a time. Figure~\ref{fig:filter_bank_convolution} shows an example of input image, and the response images for some of the Leung-Malik filter bank components~\cite{malik:filter_bank}.
+
+ \begin{figure}[htb]
+\centering{
+\begin{tabular}{ccc}
+\includegraphics[scale=0.25,bb=0 0 400 300]{figures/filter_bank_a.png} &
+\includegraphics[scale=0.25,bb=0 0 400 300]{figures/filter_bank_c.png} &
+\includegraphics[scale=0.25,bb=0 0 400 300]{figures/filter_bank_e.png}\\
+(a)&(c)&(e)\\
+\includegraphics[scale=0.25,bb=0 0 400 300]{figures/filter_bank_b.png} &
+\includegraphics[scale=0.25,bb=0 0 400 300]{figures/filter_bank_d.png} &
+\includegraphics[scale=0.25,bb=0 0 400 300]{figures/filter_bank_f.png}\\
+(b)&(d)&(f)
+\end{tabular}
+}
+\caption[Filter bank responses]{(a) Example of inner-city road scene image. (b-f) Examples of responses of five different filter components of the LM filter bank, which are shown at the bottom left corner of each figure.}
+\label{fig:filter_bank_convolution}
+\end{figure}
+
+\subsection{Feature vector and choice of filter bank}
+
+The choice of the filter bank used to represent the texture in the images to be segmented was based on the following criteria:
+
+\begin{itemize}
+\item Good coverage of possible textures without too much redundancy between filters;
+\item Fast and efficient filter response calculation;
+\item Ready-to-use implementation available.
+\end{itemize}
+
+Considering those criteria, a very interesting implementation by the Intelligent Systems Lab of the University of Amsterdam has been found. It is implemented as a matlab \emph{.mex} file, which means it is actually a C script which is pre-compiled and then called by Matlab in execution time. The libraries are freely available for research purposes\footnote{Source code at: \url{http://www.science.uva.nl/~mark}.}.
+
+Using this fast to calculate \emph{.mex} implementation, 5 different filter banks have been assessed by segmenting images using only the texture potential in Eq.~\ref{eq:texture_potential}. Four classes have been considered: `road', `sidewalk', `others'\footnote{Class `others' is assigned to any pixel that is not labeled as one of the other three classes---it can thus be seen as the complement of the other three classes.} and `sky'. 
+
+The filter banks assessed were the following:
+\begin{itemize}
+\item \emph{MR8} -- The MR8 filter bank consists of 38 filters but only 8 filter responses. The filter bank contains filters at multiple orientations but their outputs are ``collapsed'' by recording only the maximum filter response across all orientations (see Figure~\ref{fig:MR8});
+\item \emph{MR8 - no maxima} -- The rotation invariance of the MR8 filter bank, achieved by taking only the maximum response over all orientation, may not be a desired property of a texture filter bank used for segmentation---some classes could be described by their features orientation. Therefore, a filter bank called \emph{MR8 - no maxima} has been defined, where all the 38 responses are kept;
+\item \emph{MR8 - separate channels} -- Here, the MR8 filter is applied individually to each of the three color channels, in an attempt to verify whether discriminative texture information is unevenly distributed over the color channels;
+\item \emph{MR8 - multi-scale} -- This filter bank is composed of three MR8 filter banks in three subsequent scales. Although the MR8 filter bank itself already uses filters in different scales, we found interesting to try to cover even more scales as road scenes contain, almost always, objects whose distance may vary in many orders of magnitude~\footnote{For instance, there might be a car immediately in front of the camera but also another one tens of meters away.};
+\item \emph{TextoonBoost's filter bank} -- This filter bank has 17 dimensions and is based on the CIELab color space. consists of Gaussians at scales $k$, $2k$ and $4k$, $x$
+and $y$ derivatives of Gaussians at scales $2k$ and $4k$, and Laplacians of Gaussians at scales $k$, $2k$, $4k$ and $8k$. The Gaussians are applied to all three color channels, while the other filters are applied only to the luminance. 
+\end{itemize}
+
+ \begin{figure}[htb]
+\centering{
+\includegraphics[scale=0.5,bb=0 0 294 331]{figures/MR8.png}
+}
+\caption[The MR8 filter bank]{The MR8 filter bank is low dimensional, rotationally invariant and yet capable of picking out oriented features. Note that only the maximum response of the filters of each of the first 6 rows is taken.}
+\label{fig:MR8}
+\end{figure}
+
+As all the filter banks---except \emph{MR8 - separate channels} and \emph{TextoonBoost's filter bank}---are convolved with grayscale images, we also concatenated to the texture feature vector $f_x(i)$---which is the response of the filter bank---the $L$, $a$ and $b$ color values of its corresponding pixel:
+\begin{equation} \label{eq:feature_vector}
+f'_x(i) =
+\begin{bmatrix}
+f_x(i)    \\
+L_i   \\
+a_i   \\
+b_i   \\
+\end{bmatrix}
+\end{equation}
+
+ In this manner, the color information was merged with the texture, giving an extra clue to the Adaboost classifiers\footnote{Tests have been performed with different color spaces, yielding the best results when $CIELab$ was used. This comes from the fact that the $CIELab$ color space is partially invariant to scene lighting modifications---only the $L$ dimension changes in contrast to the three dimensions of the $RGB$ color space, for instance.}.
+ 
+ The results of the tests showed that the filter bank that yielded the best segmentation results and, thus, best represented the texture information in the road scene images was the \emph{MR8 - multi-scale}. This is probably due to the aforementioned fact that road scene images have similar objects and regions that may vary greatly in depth. This variation is well captured by the multiple-scale characteristic of the \emph{MR8 - multi-scale} filter bank.
+
+\subsubsection{Combination of 3D cues to feature vector} \label{sec:3d_features_methodology}
+As discussed in section~\ref{subsec:3d_features}, 3D information can be extracted from images in a video sequence using structure from motion techniques. Those techniques can only infer the 3D position of characteristic points in the image, that is, points that can be located, described and then matched in subsequent images. In this thesis this has been done using the Harris corner detector, with normalized cross-correlation over patches for matching. Other possible methods are, for example, SIFT and SURF. 
+
+All 3D features mentioned in section~\ref{subsec:3d_features} have been concatenated---just like the $L$, $a$ and $b$ color values---to the feature vector described in Eq.~\ref{eq:feature_vector}:
+
+\begin{equation} \label{eq:final_feature_vector}
+f''_x(i) =
+\begin{bmatrix}
+f'_x(i)    \\
+3Dfeature_1(i)   \\
+   \vdots  \\
+3Dfeature_5(i)   \\
+\end{bmatrix}
+\end{equation}
+
+However, in order to include this 3D cues in our feature vector, they need to be defined for every pixel of an input image. That means that we have to, somehow, transform the sparse 3D features obtained using reconstruction techniques in dense features. This can be done by interpolation, where every pixel is assigned 3D feature values based on the values of the sparse neighbors that could be defined with reconstruction techniques.
+
+Figure~\ref{fig:3d_feature_example} shows an example of dense interpolation of the 3D feature `height above ground' for an image taken from the CamVid database.
+
+\begin{figure}[htb]
+\centering{
+\begin{tabular}{cc}
+\includegraphics[scale=0.4,bb=0 0 400 300]{figures/3d_feature_example_original.png} & 
+\includegraphics[scale=0.4,bb=0 0 400 300]{figures/3d_feature_example_height.png}\\
+(a)&(b)
+\end{tabular}
+}
+\caption[3D features interpolation]{(a) A dusk image taken from the CamVid database. (b) The calculated `height above ground' 3D feature. After determining a point cloud from structure from motion techniques, the sparse features have been interpolated as to yield a dense representation. Notice how the sky has high values and that we can see a faint blob where the car is located in the original image.}
+\label{fig:3d_feature_example}
+\end{figure}
+
+It is important to mention that, before concatenating them to the feature vector as shown in Eq.~\ref{eq:final_feature_vector}, the 3D features have been appropriately normalized. The normalization guarantees that they do not overshadow the texture and color features during the clustering process. This could happen if the values of the 3D features were much greater than the values of the other features. Since the clustering method implemented uses Euclidian distances, such an imbalance in the feature values would result in biased cluster centers. 
+
+The influence of the use of 3D features on the segmentation results is discussed in Chapter 5.
+
+\subsection{Boosting of feature vectors}
+Having defined the feature vector as in Eq.~\ref{eq:final_feature_vector}, we need then to find patterns in the features extracted from training images and try to recognize them in new, unseen images. For instance, we want to learn what texture, color and 3D cues are typical in each of the classes we want to segment. Some of the machine learning techniques suitable for this task are neural networks, belief networks or even Gaussian Mixture Models in the N-dimensional space (where N is the number of filters in the filter bank). Nonetheless, an Adaboost approach has been preferred for its generalization power and ease to use.
+
+A short overview about the way Adaboost works is described here. For more details about its implementation and theoretical grounds, please see~\cite{freund:adaboost}. For this thesis project we have utilized a ready-to-use Matlab implementation from the Moscow state university\footnote{Source code available at \url{http://graphics.cs.msu.ru/en/science/research/machinelearning/modestada}.}.
+
+Note that, since we are dealing with binary Adaboost classification, one classifier has to be trained for each of the classes we want to segment the image in. For the training of each classifier, a learning data matrix $D \in \mathcal R^{Q\times K}$ is taken as input by the Adaboost trainer. Matrix $D$ has size $Q\times K$, where $Q$ is the number of dimensions\footnote{$Q = N$(number of dimensions of the filter bank) $+ 3(L,a,b) + 5$(3D features).} of the feature vector from Eq.~\ref{eq:final_feature_vector} and $K$ is the number of training vectors used for training (the feature vectors are extracted from pixels in the training images). Another input, a $1\times K$ vector $L \in \{0,1\}^{1\times K}$, contains the labels of the training data $D$. Vector $L$ is comprised of ones for the pixels belonging to the class of the classifier being trained, and zeros otherwise. Figure~\ref{fig:texton_adaboost_training} illustrates how individual classifiers for each class are trained.
+
+\begin{figure}
+ \centering
+{\includegraphics[height=6cm]{figures/texton_adaboost_training.eps}}
+\caption[Adaboost training]{Example of training procedure for classifier `road'. The $Q\times K$ data matrix $D$ is represented by the red vectors whereas the $1\times K$ label vector $L$ is indicated by the green arrows.}
+\label{fig:texton_adaboost_training}
+\end{figure}
+
+The Adaboost classifier of class $c$ is composed of $M$ stump weak classifiers $h_c(f)$,
+\begin{equation}
+h_c(f) = 
+\begin{cases} 
+1& \mbox{if }f_p > \theta \\
+0,& \mbox{otherwise} 
+\end{cases}
+\end{equation} \label{eq:classifier}
+where $f_p$ is the $p^{th}$ dimension of vector $f$ and $\theta$ is a threshold.
+
+The strong classifier $H_{class_c}(f(i))$ is built by choosing the most discriminative weak learners by minimizing the error to the target value, like explained in Section~\ref{subsec:texture_layout_potential_state_of_the_art}. 
+
+Figure~\ref{fig:texton_adaboost_classification} shows how a trained classifier outputs a confidence value between zero and one for feature vectors from unseen images.
+\begin{figure}
+ \centering
+{\includegraphics[height=4cm]{figures/texton_adaboost_classification.eps}}
+\caption[Adaboost classification]{Given a trained classifier, a classification confidence is computed based on how similiar the input feature vector is to the positive examples---and on how different it is from the negative ones---provided in the training phase illustrated in Figure~\ref{fig:texton_adaboost_training}.}
+\label{fig:texton_adaboost_classification}
+\end{figure}
+
+Once we have defined a strong classifier $H$ for each class, the texture potential of Eq.~\ref{eq:texture_potential} can be defined as:
+\begin{equation}
+\psi_i(y_i,x;\theta_{\psi}) = -\theta_{cte}.H_{class_{y_i}}(f_x(i))
+\end{equation} 
+The output of the strong classifier $H_{class_{y_i}}(f_x(i))$ is multiplied by a negative constant, $-\theta_{cte}$ so that a positive confidence turns into a negative energy, which will be preferred in the energy minimization.
+
+$\theta_{\psi}$ is the set of all parameters used in the Adaboost training of $H$---for instance, number of weak classifiers---as well as the constant $\theta_{cte}$.
+
+\subsection{Adaptive training procedure} \label{subsec:adaptive_training}
+
+In order to make the training of Adaboost classifiers more tractable, not every pixel of every training image has been selected to build the training data matrix $D$. Since there is a lot of redundancy between pixels, this simplification has not adversely affected the quality of the Adaboost classifiers.
+
+Although the selection of pixels for the extraction of training feature vectors has initially been random, a smarter and innovative algorithm has been developed.
+
+The adaptive training procedure works by, in an iterative way, choosing an unequal proportion of feature vectors from each label. The idea is that, based on the confusion matrix of a given segmentation experiment, we know the strengths and weaknesses of the classifiers trained. For instance, suppose that for a given segmentation experiment class `sky' is not confused as much as `street' and `sidewalk'. Then, it is reasonable that we choose in the next segmentation experiment \emph{more} feature vectors from classes `street' and `sidewalk' and \emph{less} feature vectors from class `sky' for the training of classifiers `street' and `sidewalk'.
+
+Formally, if we represent the weight (or proportion) of training feature vectors from class $i$, used in the Adaboost training of classifier $j$, as $W_{ij}$, the update of every weight after each segmentation iteration (experiment) can be expressed as:
+\begin{equation} \label{eq:weights_adaptive}
+ W'_{ij} = 
+\begin{cases} 
+W_{ij} e^{\alpha  Cm_{ij}}/Z& \mbox{if }i\neq j \\
+W_{ij} e^{\alpha  (1-Cm_{ij})}/Z& \mbox{if }i=j 
+\end{cases}
+\end{equation}
+where $Cm_{ij}$ is the element in the $i^{th}$ row and $j^{th}$ column of the confusion matrix of the previous segmentation iteration. $\alpha$ is a learning speed factor and $Z$ is a normalization factor that guarantees that 
+\begin{equation}
+ \sum_i W'_{ij} = 1\mbox{,}
+\end{equation}
+ or, in other words, that the sum of the proportions of feature vectors from each class remains equal to 1. The weights are all equally initialized as $W_{ij} = 1/N_c$, $N_c$ representing the number of classes.
+ 
+ Notice that in the case of a perfect segmentation, where the confusion matrix is equal to the identity matrix, the proportion of training feature vector samples $W'_{ij}$ does not change.
+
+Although the adaptive learning algorithm improved a lot the segmentation quality (see Section~\ref{sec:result_no_context}), the use of local features alone is intrinsically limited. As precise and discriminative as a classifier may be, there are cases where class `sidewalk' is virtually identical to class `road' for every local feature imaginable. The natural next step towards a better segmentation is to use \emph{context} information. Then, the fact that sidewalks are normally alongside roads, separating them from buildings or other regions, can be explored and help us correctly differentiate what locally is indifferentiable.
+
+\section{Texture-layout potential model} \label{sec:texture_layout_potential}
+
+In order to model contextual information, we opt for utilizing the texture layout features introduced by TextonBoost. This new potential replaces the texture potentials explained in the previous section, as they are more general. We then have the following energy function:
+\begin{equation} \label{eq:texture_layout_potential}
+U(y|x,\theta) = 
+\sum_i
+\overbrace{\lambda(y_i,i;\theta_{\lambda})}^{location}
++ \overbrace{\psi_i(y_i,\textbf{x};\theta_{\psi})}^{\textbf{texture-layout}}
++ \sum_{(i,j)\in \varepsilon}\overbrace{\phi(y_i, y_j, g_{ij}(x);\theta_{\phi})}^{edge}
+\end{equation}
+In this equation, the texture-layout potentials are defined similarly to the way they are defined in TextonBoost:
+\begin{equation}
+\psi_i(y_i,\textbf{x};\theta_{\psi}) = - \theta_{\psi_{kappa}}.H(y_i,i)
+\end{equation}
+The confidence $H(y_i,i)$ is the output of a strong classifier found by boosting weak classifiers, 
+\begin{equation}
+H(y_i,i) = \sum_{m=1}^M h_{y_i}^m(i)
+\end{equation}
+Each weak classifier, in turn, is defined based on the response of a texture-layout filter:
+\begin{equation} 
+h_{y_i}^m(i) = 
+\begin{cases} 
+a,& \mbox{if }v_{\left [ r,t \right ] }(i) > \theta\\
+b,& \mbox{otherwise,} 
+\end{cases}
+\end{equation}
+
+Notice the difference from the definition in Eq.~\ref{eq:weak_class_textonboost} of TextonBoost: bearing in mind our final goal of behavior prediction, we do not need to classify as many classes as in TextonBoost---where up to 32 different classes are segmented. TextonBoost shares weak classifiers because the computation cost becomes sub-linear with the number of classes. Since we do not need as many classes, it is possible for us to simplify the calculation of strong classifiers by not using shared weak classifiers. Therefore, in our approach, each strong classifier has its own, exclusive weak classifiers. 
+
+The texture-layout filter response $v_{\left [ r,t \right ] }(i)$ is the proportion of pixels in the input image, from all those lying in the rectangle $r$ with its origin shifted to pixel $i$, that have been assigned texton $t$ in the textonization process illustrated in section~\ref{subsec:texture_layout_potential_state_of_the_art}:
+\begin{equation}
+v_{\left [ r,t \right ] }(i)= \frac{1}{\textnormal{area}(r)} \sum_{j \in(r+i)} \left [ T_j = t \right ].
+\end{equation}
+
+\subsection{Training procedure} \label{subsec:boosting_training_procedure}
+
+We used, for our textonization process, the same feature vector definition as in Eq.~\ref{eq:final_feature_vector}, which contains texture, color and 3D cues.
+
+In order to build a strong classifier---note that we need to train one strong classifier for each of the classes we want to segment our image in---, weak classifiers must be added one by one following the following boosting procedure:
+
+\begin{enumerate}
+ \item \emph{Generation of weak classifier candidates:} Each weak classifier is composed of a texture-layout filter $(r,t)$ and a threshold $\theta$. The candidates are generated by randomly choosing a rectangle region inside a bounding box, a texton index $t \in \mathcal T = \{1, 2, \cdots, K \}$ where $K$ is the number of clusters used in the textonization process, and finally a threshold $\theta$ between 0 and 1. For the addition of each weak classifier, an arbitrary number of candidates, $N_{cd}$, is generated.
+ \item \emph{Calculation of $a$ and $b$ for all candidates:} Each weak classifier candidate must also be assigned values $a$ and $b$ so that its response, $h_{c}^m(i)$, is fully defined. Like described by Torralba et al~\cite{torralba:boosting}, who use the same boosting approach (except our does not share weak classifiers), $a$ and $b$ can be calculated as follows:
+ \begin{eqnarray} \label{eq:a_b_calculation}
+&& b = \frac{\sum_i w_i^c z_i^c \left [ v_{\left [ r,t \right ] }(i)\leq \theta \right ]}{\sum_i w_i^c \left [ v_{\left [ r,t \right ] }(i)\leq \theta \right ]} \textnormal{,} \\
+&& a = \frac{\sum_i w_i^c z_i^c \left [ v_{\left [ r,t \right ] }(i) > \theta \right ]}{\sum_i w_i^c \left [ v_{\left [ r,t \right ] }(i) > \theta \right ]} \textnormal{,}
+\end{eqnarray}
+where $c$ is the label for which the classifier is being trained, $z_i^c = +1$ or $z_i^c = -1$ for pixels $i$ which, respectively, have ground truth label $c$ or different from $c$, and $w_i^c$ the are classification accuracy weights used by Adaboost (see Section~\ref{subsec:texture_layout_potential_state_of_the_art}). 
+
+Note, from Eq.~\ref{eq:a_b_calculation}, that for the calculation of $a$ and $b$ the response of the texture-layout filters, $v_{\left [ r,t \right ] }(i)$, must be calculated for all training pixels $i$ and compared to the threshold $\theta$. 
+
+ \item \emph{Search for the best weak classifier candidate:} Once each weak classifier is fully defined, that is, all parameters $(r, t, \theta,a, b)$ are defined, the most discrimitative among the candidates is found by minimizing the error function with respect to the target values $z_i^c$. 
+\end{enumerate}
+
+In Chapter 5 we see how texture-layout strong classifiers can learn the context between objects. We observe also how the number of weak classifiers influences the segmentation quality.
+
+\subsection{Practical considerations}
+
+\subsubsection{System architecture}
+
+Due to the short period of time available for this thesis work, the implementation of software had to be efficient and fast. Owing to its flexibility---and variety of ready-to-use image processing, statistics, plotting and other functions available---Matlab has been the preferred tool for the implementation of the solution. 
+
+Conditional Random Fields are, however, intrinsically highly demanding in computational resources. This is due to the iterative nature of the minimization procedure of the cost function $U$, detailed in section~\ref{subsec:MRF}. As Matlab is an interpreted programming language, it is significantly slower to process loops than compiled languages such as C or C++. Therefore, Matlab has proven to be unable to cope with the massive calculations needed for the segmentation inference, when the cost function $U$ is minimized.
+
+In the context of the iCub project~\cite{icub:icub}---which is lead by the RobotCub Consortium, consisting of several European universities---, a good C++ framework for the minimization of Markov Random Field energy functions has been found. The main goal of the iCub platform is to study cognition through the implementation of biological motivated algorithms. The project is open-source---both the hardware design and the software are freely available.
+
+The software implemented has been then based on a two-layer layout, as illustrated in Figure~\ref{fig:software_structure}. Matlab, on a higher-level, pre-processes images---calculating, for instance, filter convolutions---whereas the C++ program calculates the minimum of the energy function $U$. In other words, the C++ layer infers, from the given cliques potentials and input Matlab pre-processed data, what the maximum a posteriori likelihood labeling is.
+
+\begin{figure}
+ \centering
+{\includegraphics[scale=0.55,bb=0 0 582 533]{figures/software_structure.png}}
+\caption[Software hierarchy]{Software hierarchy. The Matlab layer is responsible for the higher-level processing whereas the C++ layer takes the heavy energy minimization computation.}
+\label{fig:software_structure}
+\end{figure}
+
+The assessment of the quality of the segmentations, the storage of results and all complementary software functionalities are handled by Matlab on the higher-level layer. 
+
+\subsubsection{Implementation challenges and optimizations}
+Differently from the case of the texture potential explained in the previous section, we could not find any ready-to-use Matlab implementation of the boosting procedure for the texture-layout potential, as it is very specific to this problem. The whole algorithm had then to be implemented from scratch. Moreover, since there are countless loops involved in the training algorithm described above, Matlab was ruled out as programming environment of the implementation, being replaced by C++.
+
+Two main practical problems have been faced in the C++ programming of the developed algorithm described above. Firstly, the long processing time and, secondly, the lack of RAM memory.
+
+\begin{enumerate}
+\item \emph{Processing time:} The boosting procedure described in the previous section requires computations over all training pixels. If we consider 100 images---a typical number for a training data set---each composed of, for instance, $800 \times 600$ pixels, we have already 48 million calculation loops for each step. This turns out to be impractical for today's processors. The solution found was to resize all dataset images before segmenting them and also to consider, as training pixels, only a subsampled set of each image. By resizing the images to half their original size and subsampling the training pixels in 5-pixel steps, we could already reduce the number of calculation loops 100 times. After this simplification was applied, the decrease in segmentation quality was almost imperceptible, which indicates that the information necessary for training the classifiers was not lost with the resizing and subsampling.   
+
+\item \emph{RAM memory:} 
+
+As discussed in section~\ref{sec:TextonBoost}, the use of integral images is essential for the efficiency of the calculation of the texture-layout filters $v_{\left [ r,t \right ] }$. If we consider that 100 textons have been defined in the textonization process, we have, for each training image, 100 integral images, one for each texton index. Again, considering 100 training images already resized to half their original size, we have ten thousand $400 \times 300$ matrices (each matrix represents an integral image). If we use a normal $int$ variable for each matrix element---which in C++ occupies 4 bytes---we need $10000 \times 400 \times 300 \times 4 = 4.8$ $Gigabytes$ or RAM memory. The first attempt to avoid this memory problem was to load only some of the integral images at a time. However, for the calculation of the texture-layout filter responses of the weak classifier candidates, all the integral matrices are necessary. They had then to be all simultaneously accessible in the RAM memory.
+
+The solution was to use short unsigned integers---with only 2 bytes---, which were big enough for all the integral matrices analyzed\footnote{Each short unsigned integer can store a number of up to 65535. If we consider a $400 \times 300$ pixel image, the maximum value of an integral image---if all pixels were assigned to one single texton---is 120000. However, since each pixel is assigned to one of many texton indexes, the integral image of each texton never has values close to the limit 65535.}, and also to subsample the integral image matrices:
+\begin{equation}
+I^{(t)}(u,v) = I'^{(t)} \bigg( round \Big( \frac{(u,v)}{SubsamplingFactor} \Big) \bigg)
+\end{equation}
+
+Again, the subsampling almost did not change the results of the final segmentations. One of the reasons why the results did not change much is probably that the subsampling rate of 3 used is much smaller than the sizes of the rectangular regions $r$ used in the texture-layout features. Although the subsampling reduced the amount of RAM memory necessary for loading the integral images, there is a limit of training images that can be used for training without causing memory problems.
+
+\end{enumerate}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

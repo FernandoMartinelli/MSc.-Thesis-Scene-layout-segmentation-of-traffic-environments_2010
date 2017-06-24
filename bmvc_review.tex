@@ -1,0 +1,301 @@
+\documentclass{bmvc2k}
+
+%% Enter your paper number here for the review copy
+%\bmvcreviewcopy{??}
+
+% long title (3 lines) - Good title, it is accurate and looks good. (but maybe a bit long, and it does not mention scene cat...)
+\title{Vision-Based Behavior Prediction in \\ Urban Traffic Environments Using a \\ Higher Order Conditional Random Field}
+
+% alternative title (3 lines) - Also good title, it contains all the important information and is rather short.
+%\title{Vision-Based Behavior Prediction in \\ Urban Traffic Environments by Scene Categorization}
+
+% more informal title (3 lines) - A bit too informal, otherwise ok. (but it over-emphasizes the scene categorization...)
+%\title{Scene Categorization Where It Matters: Vision-Based Behavior Prediction in \\ Urban Traffic Environments}
+
+% Enter the paper's authors in order
+% \addauthor{Name}{email/homepage}{INSTITUTION_CODE}
+\addauthor{Martin Heracles}{heracles@cor-lab.uni-bielefeld.de}{12}
+\addauthor{Fernando Martinelli}{fernando.martinelli@gmail.com}{2}
+\addauthor{Jannik Fritsch}{jannik.fritsch@honda-ri.de}{2}
+
+% Enter the institutions
+% \addinstitution{Name\\Address}
+\addinstitution{
+  CoR-Lab\\
+  Bielefeld University\\
+  Germany
+}
+\addinstitution{
+  Honda Research Institute Europe\\
+  Offenbach/Main\\
+  Germany
+}
+
+\runninghead{Heracles \etal}{Behavior Prediction in Urban Traffic Environments}
+
+% Any macro definitions you would like to include
+% These are not defined in the style file, because they don't begin
+% with \bmva, so they might conflict with the user's own macros.
+% The \bmvaOneDot macro adds a full stop unless there is one in the
+% text already.
+\def\eg{\emph{e.g}\bmvaOneDot}
+\def\Eg{\emph{E.g}\bmvaOneDot}
+\def\etal{\emph{et al}\bmvaOneDot}
+
+%------------------------------------------------------------------------- 
+% Document starts here
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We propose a method for vision-based scene understanding in urban
+traffic environments that predicts the behavior a human driver would
+choose in a given scene. The visual scene is decomposed into
+behavior-relevant entities using a higher-order CRF which is learned
+from labeled training images. A classifier is then trained on features
+that represent spatial properties of these entities in order to
+predict the appropriate velocity and yaw rate of the car. We show how
+the behavior prediction task can be naturally formulated as scene
+categorization problem and how the required training data can be
+automatically computed from any video sequence recorded while
+driving. We evaluate our method both quantitatively and qualitatively
+on the recently proposed CamVid dataset and compare our results to
+state-of-the-art methods. In particular, we investigate the impact of
+the underlying segmentation on the quality of the predicted behavior.
+\end{abstract}
+
+%------------------------------------------------------------------------- 
+\section{Introduction}
+\label{sec:intro}
+
+Understanding complex visual scenes such as real-world traffic environments is a challenging task that humans are able to solve with the greatest of ease. As pedestrians, car drivers etc., they convincingly demonstrate every day that this remarkable feat can be achieved largely on the basis of (stereo) vision, without requiring additional information from laser scanners, infrared sensors, GPS or map data of the environment. In this paper, we take the perspective of a human driver and address the problem of vision-based scene understanding from video sequences that are acquired by a car-mounted camera, monitoring the scene in front of the car while driving. In particular, we are interested in predicting the behavior of the driver from the visual data at any given point in time. Such capability is highly important for future driver assistance systems and autonomous driving applications since it endows a car with expectations of which behavior is appropriate in a given traffic situation. Depending on the application, these expectations can then be compared to the actual behavior of the human driver, generating a warning message in case of significant deviation, or used directly to control the effectors of the car. 
+
+\noindent {\bf Background.} \hspace{0.1cm}
+Due to the enormous complexity of unconstrained real-world traffic environments, existing driver assistance systems restrict themselves to very specific tasks such as lane keeping~\cite{lane_keeping}, collision avoidance~\cite{collision_avoidance}, automatic following~\cite{automatic_following} or parking assistance~\cite{parking_assistance}, processing only very limited subsets of information about the scene. Autonomous driving applications go beyond such individual tasks and have already demonstrated impressive levels of performance and robustness, the DARPA challenges being two prominent examples~\cite{darpa05, darpa07}. However, these typically rely on extensive technical sensor setups involving laser scanners, infrared sensors, radar sensors, GPS and annotated map data of the environment, with vision playing only a subordinate role. 
+
+Vision-based scene understanding has undergone significant development in recent years. Early work considered the scene as a whole~\cite{global} or at the level of coarse sub-blocks~\cite{sub_blocks}, computing global or block-wise image statistics, and enabled scene categorization of few well-distinguishable classes~\cite{few1, few2, few3}. Drawing inspiration from text document analysis, bag-of-words representations have been proposed that model images as histograms of local patch descriptors~\cite{bag_of_words}. Despite their lack of representing spatial image properties, they have been successfully applied to scene categorization of up to 13 classes~\cite{feifei05} and have been widely used. Lazebnik \etal~\cite{lazebnik06} introduced a hierarchy of bag-of-words representations over increasingly fine-grained image grids that incorporates the spatial layout of a scene. Their implicit assumption of low variance in the spatial scene layouts has been addressed by approaches considering object-centered spatial properties~\cite{ommer07}, which are computationally expensive. Drawing further inspiration from text document analysis and texture models, Latent Topic Models have been shown to improve the codebooks underlying the bag-of-words representations by capturing co-occurrences between codewords~\cite{quelhas05, feifei05, bosch06}, and very recently they have evolved into complex generative models capable of simultaneous scene categorization, segmentation and annotation~\cite{cao07, wang09, li09}. As for discriminative models, Conditional Random Fields for scene segmentation have received considerable attention in recent years~\cite{crfs}. In contrast to the scene categorization approaches discussed earlier, which are typically evaluated on rather domain-independent scene categories of indoor and outdoor environments~\cite{generative_dataset1, generative_dataset2, generative_dataset3}, these segmentation approaches explicitly address real-world traffic environments, both from the perspective of pedestrians and car drivers~\cite{discriminative_dataset1, discriminative_dataset2, discriminative_dataset3}. While appearance-based features such as texture~\cite{shotton06}, edge orientation histograms~\cite{dalal05}, color~\cite{color_seg} etc. have been mainly used for segmentation, it has been shown that a reasonable segmentation can also be achieved by using only 3D features, derived from sparse 3D point clouds~\cite{brostow08}. Recently, both appearance-based and 3D-based features have been used in combination with higher order potentials computed from unsupervised initial segmentation in order to achieve more accurate segment boundaries~\cite{sturgess09}. Also, Conditional Random Fields have been extended to perform both scene segmentation and scene categorization in a common framework~\cite{wang08}. 
+
+The most related previous work to our paper are the approaches of Ess \etal~\cite{ess09}, Sturgess \etal~\cite{sturgess09}, and Brostow \etal~\cite{brostow08}. 
+
+\noindent {\bf Contributions.} \hspace{0.1cm}
+Our paper makes the following important contributions: {\em (i)} We show how the behavior prediction can be naturally formulated as scene categorization problem (Sec.~\ref{sec:problem}), and how the corresponding training data can be generated automatically from any given dataset of video sequences (Sec.~\ref{sec:training}). {\em (ii)} We extend the spatial road layout categorization proposed by Ess \etal~\cite{ess09} to more fine-grained categories and explicitly use them to predict the appropriate velocity and steering angle (Sec.~\ref{sec:steering}). {\em (iii)} We investigate the impact of the underlying segmentation on the quality of these predictions. To this end, we quantitatively compare the prediction error obtained with different segmentation methods, including the one used by Ess \etal~\cite{ess09} and the higher order CRF proposed by Sturgess \etal~\cite{sturgess09} (Sec.~\ref{sec:eval}). % and Brostow et al., ECCV 2008 ? 
+
+\begin{figure}
+\begin{tabular}{cc}
+\bmvaHangBox{\fbox{\parbox{5.77cm}{~\\[2.5mm]
+\rule{0pt}{1ex}\hspace{5mm}\includegraphics[height=4cm]{images/images.png}\\[-11pt]}}}&
+\bmvaHangBox{\fbox{\parbox{5.77cm}{~\\[0mm]
+\rule{0pt}{1ex}\hspace{11mm}\includegraphics[height=4cm]{images/behavior.png}\\[-4.5pt]}}}\\
+(a)&(b)
+\end{tabular}
+\caption{(a) Uncalibrated image sequence recorded while driving. (b) Corresponding behavior of the driver in terms of velocity and yaw rate of the car. Our goal is to learn to predict the appropriate behavior in any given situation from the visual image data.}
+\label{fig:problem}
+\end{figure}
+
+%------------------------------------------------------------------------- 
+\section{Problem formulation}
+\label{sec:problem}
+
+We assume that we have a given video sequence acquired by a car-mounted camera, monitoring the scene in front of the car while driving continuously in real-world traffic environments (Fig.~\ref{fig:problem}a). Such video sequences are typical of recent datasets used to evaluate methods for vision-based traffic scene understanding. Examples include the video sequences provided as part of the CamVid dataset~\cite{brostow09} and those used by Ess \etal~\cite{ess09}. Note that we do not assume the camera to be calibrated, which is important because it simplifies the use of video sequences collected from very different sources, potentially increasing the amount of available training data. 
+
+Given such a video sequence, it is well-known that both the ego-motion of the camera and the 3D structure of the scene can be reconstructed up to a scale factor by using structure from motion techniques~\cite{hartley03}. While the structure of the scene can be used to derive powerful 3D features~\cite{brostow08}, we are mainly interested in the ego-motion of the camera for the problem considered in this paper: Since the camera is assumed to be firmly mounted to the car, and the car as a whole can be seen as a rigid body, the ego-motion of the camera largely corresponds to the ego-motion of the car (but note the non-holonomicity, see~\cite{scaramuzza09}). Thus, it is possible to infer the velocity and the yaw rate of the car from the ego-motion of the camera (Fig.~\ref{fig:problem}b). 
+
+For each frame, we therefore have an image that largely depicts what the driver sees, as well as the velocity and yaw rate of the car which largely corresponds to what the driver currently does. Note that we do not have any direct information on how the driver interacts with the steering angle, throttle and brake pedals etc., however, such information is not necessary since this interaction ultimately affects the velocity and yaw rate of the car. Now what the driver does clearly depends on what the driver sees to a great extent, \eg, braking due to a red traffic light, an obstacle, or a curve. Our goal is to learn this correspondence. To this end, the system observes both during training and, afterwards, should be able to predict the appropriate behavior data from the image data alone. Note that this cannot be achieved by applying structure from motion techniques: These can be used during training in order to generate ground truth behavior data from the training video sequences. After training, however, there is no such video sequence, instead, it will be the result of executing the behavior as predicted by the system.
+%Of course, not all behavior has a correspondence in the visual scene, like braking in order to change a tyre, for example. 
+
+%So, one can compute both velocity and yaw rate from the visual image stream alone, resulting in a corresponding sequence of velocity and yaw rate values for each frame. The interesting question, then, is the following: How does, in any given moment, the behavior of the driver {\em change}? If we simply observe the images corresponding to this moment and shortly after, we can simply compute this information, but if we only have the images up to this moment, will it continue the same manner or not? And if not, will velocity decrease, or increase, or will the yaw rate change to a left turn, or to a right turn? In this sense, we are really after {\em predicting} the behavior of the driver. And this behavioral change, if any, depends (mostly) on the visual scene, i.e., the corresponding image and its immediate predecessors. 
+
+%The problem, then, can be formalized as follows. Given the current image and a short history of previous images, which is useful for computing features such as optical flow or 3D structure, for example, we seek the corresponding point in behavior {\em change} space. Mostly it will be zero, indicating no particular change of behavior, but every now and then it will be different from zero. Intuitively, these are the interesting situations in which the driver {\em reacts} to something in the visual scene. So we have the situation as depicted in Fig.~\ref{fig:problem}. If we now subdivide the behavior change space into different regions, which can be interpreted semantically as categories "no change", "left curve", "right curve", "braking", "accelerating" and so on, the behavior prediction becomes a scene categorization problem: Given the image, what is the corresponding label? Note that the granularity of the regions may be arbitrarily fine-grained, for example distinguishing between different degrees of "left curve" such as "slightly left", "medium left" and "strongly left", for example. Thereby, we can approximate a regression problem using discrete classes, at the cost of increasing the difficulty of the classification problem due to the increasing degree of similarity between classes. 
+
+%%%
+
+%\begin{itemize}
+%\item well-known that camera trajectory can be estimated from visual stream alone (structure from motion)
+%\item this directly corresponds to the behavior of the driver (velocity and steering angle)
+%\item exactly the same motion as that of car if camera mounted along rear axis (see \cite{scaramuzza09})
+%\item CamVid dataset was recorded with camera that was not mounted this way (see \cite{brostow09})
+%\item according to \cite{scaramuzza09}, this is the interesting case which allows us to compute the absolute scale
+%\item note that this only holds while the vehicle is turning
+%\item CamVid offers camera trajectories, but in batches with independent scales
+%\item idea: use \cite{scaramuzza09} in order to compute absolute scale per batch, then make batches equal scale
+%\item possible since camera was fixed, and significantly away from rear axis
+%\item question: is it possible to compute the correct scale from the camera calibration matrices, maybe?
+%\end{itemize}
+%
+%\dots
+%
+%\begin{itemize}
+%\item well-known that we can compute entire camera trajectory given a visual stream
+%\item this camera trajectory directly corresponds to behavior of driver (see \cite{scaramuzza09} for detailed distinction)
+%\item so what's the problem? we can compute the behavior from the image stream...
+%\item yes, this is no problem for past images
+%\item but of course not possible for future images, during operation (not until these images have become past, at least)
+%\item so the interesting part is the current situation/moment: will driving continue as before, or will it change? if so, how?
+%\item that's what we are going to answer in this paper (the system will learn to predict this)
+%\item example: driving straight at constant speed, happens often, then curve / car in front / traffic light / sign "highway"...
+%\item very different reasons for the behavior change - requires visual scene understanding capabilities
+%\item segmentation is a very sophisticated type of "intermediate representation", which has been shown to be beneficial
+%\item ah yeah, and note that this behavior prediction stuff can be seen as classification problem
+%\end{itemize}
+%
+%\dots
+%
+%\begin{itemize}
+%\item given that the camera trajectory can be so easily computed from the omnipresent image streams, and 
+%\item given the importance of the camera trajectory due to its direct correspondence to the behavior of the driver, 
+%\item we are surprised that (apparently) no one in the vision community has really looked at it as behavior data
+%\item it could have been done (has it?), without sacrificing the vision paradigm
+%\item we do exactly this
+%\end{itemize}
+
+%------------------------------------------------------------------------- 
+\section{Training data generation}
+\label{sec:training}
+
+Given a calibrated or uncalibrated image sequence recorded while driving in real-world traffic, we first extract the behavior of the driver that is implicit in this sequence. Both the image data and the behavior data are then used for training the system. As explained in Sec.~\ref{sec:problem}, we employ structure from motion techniques for extracting the behavior data. These techniques are commonly used in approaches to vision-based traffic scene understanding (\eg, \cite{brostow08, brostow09}), but their focus is rather on the resulting 3D data than on the ego-motion of the camera. In particular, the importance of the latter with respect to the behavior of the driver has not yet been emphasized. 
+
+For the sake of completeness, we briefly summarize the main steps involved in the structure from motion techniques, following \cite{brostow08}. First, keypoint detection is performed on the individual images, yielding a sparse set of 2D points per image. A typical choice is the Harris corner detector~\cite{harris}. Next, correspondence between keypoints of subsequent images is established by comparing local image patches centered at the keypoints, resulting in short trajectories of keypoints corresponding to the same 3D point in the scene. This can be done by Normalized Cross Correlation, for example~\cite{ncc}. The coordinates of the 3D points as well as the cameras can then be inferred by triangulation, assuming that the 3D points are static. In the uncalibrated case, however, this 3D reconstruction is inherently ambiguous and can only be achieved up to an unknown scale factor. Commercial software is often used in this step~\cite{boujou}. 
+
+In practice, the ambiguity in the 3D reconstruction from uncalibrated cameras can be problematic. This is the case when using video sequences from different sources as training data, but also when individual sequences are processed in batches for technical reasons. The CamVid dataset~\cite{brostow09} is an example of the latter. In this case, the 3D data has to be post-processed in order to be comparable across batches. We achieve this by aligning subsequent batches in terms of translation, rotation and scaling, assuming that their beginnings and ends are overlapping. Translation is determined by computing the difference between the centers of gravity of the overlapping camera positions, rotation is determined by computing the angle between the centers of gravity of the first and second half of each overlapping segment, and scale is determined by computing the factor that makes these two vectors equal in length. The result of this camera trajectory alignment can be seen in Fig.~\ref{fig:alignment}a. In addition, the 3D point clouds of subsequent batches are aligned by setting the focal distance corresponding to the second batch equal to the focal distance corresponding to the first batch and recomputing the 3D point clouds accordingly. The result of this operation can be seen in Fig.~\ref{fig:alignment}b. After the alignment, both 3D point clouds and camera trajectories are comparable across batches, which enables us to compute 3D features such as proposed in~\cite{brostow08} and, more importantly to us, the behavior of the driver in terms of velocity and yaw rate of the car. 
+
+Note that the purpose of the alignment is to establish a common scale, which is sufficient for our purposes, not to determine the correct scale of the scene. Also, it assumes overlapping batches, which is a reasonable assumption when dealing with video sequences whose 3D reconstruction has been done batch-wise for technical reasons, \eg, the CamVid dataset, but not when dealing with video sequences from different sources. In this context, it is worth noting that the correct scale of the scene can be inferred by exploiting non-holonomicity of the camera setup while driving curves~\cite{scaramuzza09}. 
+
+\begin{figure}
+\begin{tabular}{cc}
+\bmvaHangBox{\fbox{\parbox{5.77cm}{~\\[2.5mm]
+\rule{0pt}{1ex}\hspace{3mm}\includegraphics[height=4cm]{images/unaligned.png}\includegraphics[height=4cm]{images/aligned.png}\\[-11pt]}}}&
+\bmvaHangBox{\fbox{\parbox{5.77cm}{~\\[0mm]
+\rule{0pt}{1ex}\hspace{3mm}\includegraphics[height=4cm]{images/unaligned3D.png}\includegraphics[height=4cm]{images/aligned3D.png}\\[-4.5pt]}}}\\
+(a)&(b)
+\end{tabular}
+\caption{(a) Camera trajectories of two subsequent batches before and after alignment. (b) 3D points of two subsequent batches before and after alignment.}
+\label{fig:alignment}
+\end{figure}
+
+%\begin{itemize}
+%\item We need to make the different streams comparable (regarding behavior data, especially velocity).
+%\item Otherwise we can only train and test on individual streams, which is bad (not enough training data, not typical)
+%\item Batches need to be made comparable as well - we use robust alignment of overlappings with centers of gravity
+%\item A limitation of this approach is in sequence VD, where a new batch begins while car is standing (inaccurate!)
+%\item We need to change the scale of the 3D point clouds as well, I think. Can we use the same scale factors?
+%\item One way to make sequences comparable would be to align their behavior prior maps - they should look similar...
+%\item A much better way would be to estimate the absolute scale in curves (see \cite{scaramuzza09}).
+%\end{itemize}
+
+%------------------------------------------------------------------------- 
+\section{Behavior prediction}
+\label{sec:steering}
+Papers must be 9~pages in length, {\em excluding} the bibliography.  Length
+is counted from the bottom of the title on the first page.  Therefore, the
+bibliography should begin eight lines into page ten.  This is an
+approximate measure, intended to encourage brevity, but authors should keep
+in mind that blatant disregard of this instruction will cause reviewers to
+require greater originality and impact of the submission.  {\bf Papers which are
+clearly overlength will not be reviewed}.  This includes papers where the
+margins and formatting are deemed to have been significantly altered from
+those laid down by this style guide.  The reason such papers will not be
+reviewed is that there is no provision for supervised revisions of
+manuscripts.  The reviewing process cannot determine the suitability of the
+paper for presentation in nine pages if it is reviewed in twelve.
+
+%------------------------------------------------------------------------- 
+\section{Evaluation}
+\label{sec:eval}
+Papers must be 9~pages in length, {\em excluding} the bibliography.  Length
+is counted from the bottom of the title on the first page.  Therefore, the
+bibliography should begin eight lines into page ten.  This is an
+approximate measure, intended to encourage brevity, but authors should keep
+in mind that blatant disregard of this instruction will cause reviewers to
+require greater originality and impact of the submission.  {\bf Papers which are
+clearly overlength will not be reviewed}.  This includes papers where the
+margins and formatting are deemed to have been significantly altered from
+those laid down by this style guide.  The reason such papers will not be
+reviewed is that there is no provision for supervised revisions of
+manuscripts.  The reviewing process cannot determine the suitability of the
+paper for presentation in nine pages if it is reviewed in twelve.
+
+\begin{figure}
+\begin{tabular}{cc}
+\bmvaHangBox{\fbox{\parbox{5.77cm}{~\\[3.0mm]
+\rule{0pt}{1ex}\hspace{0mm}\includegraphics[height=3.10cm]{images/joint.png}\\[13pt]}}}&
+\bmvaHangBox{\fbox{\parbox{5.77cm}{~\\[-1.0mm]
+\rule{0pt}{1ex}\vspace{-3mm}\hspace{0mm}\includegraphics[height=3.00cm]{images/joint_vel.png}\vspace{-10mm}\hspace{0mm}\includegraphics[height=3.00cm]{images/joint_yaw.png}\\[-22pt]}}}\\
+(a)&(b)
+\end{tabular}
+\caption{Prior probability map over behavior, learned from training data (CamVid dataset). (a) Velocity; (b) yaw rate; (c) joint distribution.}
+\label{fig:behavior_priors}
+\end{figure}
+
+\begin{itemize}
+\item When looking at the behavior over the total length of a sequence (or all sequences), we get a prior probability map.
+\item Pooling over sequences requires comparable (equal) scale! (at the moment determined empirically)
+\item Looking at the pooled prior probability map, we see that there are three main peaks (rather large variance).
+\item One peak is located at 0, which indicates that the vehicle is standing for a significant fraction of the time.
+\item An example of such a situation is waiting at a red traffic light, with or without vehicles in front.
+\item Another peak is located at $max$, which indicates that the vehicle is driving at a certain speed normally.
+\item This is typical of a situation in which the road is straight and no obstacles are in front.
+\item The third peak is located slightly above the 0 peak, which indicates that the vehicle is often driving much slower.
+\item This is typical in curves, for example, but also when accelerating or decelerating in a row of other vehicles.
+\item It is a bit surprising that the third peak is largest. Could it be that slower driving systematically leads to higher peaks? (sampling rate!)
+\item In general, we see that there are relatively few curves and we are mostly driving straight.
+\item On closer examination, we find that the yaw rate variance for larger velocities is much smaller than for small velocities.
+\item This is to be expected, since driving curves coincides with reducing speed. Driving fast occurs mostly on straight roads.
+\item The relatively few real curves are visible, but only very low-amplitude. Most steering occurs as correction movements.
+\end{itemize}
+
+\dots
+
+\begin{itemize}
+\item Compare our more sophisticated, Sturgess-like segmentation to Ess segmentation. Is is better? (should be!)
+\item Does the better segmentation also lead to better behavior classification / road layout classification? (questionable!)
+\item Which features do we use for the behavior classification? Different from Ess? Which are better?
+\end{itemize}
+
+%------------------------------------------------------------------------- 
+\section{Conclusion}
+\label{sec:conclusion}
+We propose to use this new paradigm of behavior prediction as benchmark on which future and existing algorithms for visual scene understanding in traffic environments should be evaluated and compared to each other. This includes scene categorization as well as segmentation algorithms that have recently been applied to traffic scenes. We argue that this is a better way to evaluate such algorithms than comparing their outputs against a ground truth at pixel-level, because it puts emphasis on what really matters about understanding a visual scene in the end.
+
+%\begin{figure}
+%\begin{tabular}{ccc}
+%\bmvaHangBox{\fbox{\parbox{2.7cm}{~\\[2.8mm]
+%\rule{0pt}{1ex}\hspace{2.24mm}\includegraphics[width=2.33cm]{images/eg1_largeprint.png}\\[-0.1pt]}}}&
+%\bmvaHangBox{\fbox{\includegraphics[width=2.8cm]{images/eg1_largeprint.png}}}&
+%\bmvaHangBox{\fbox{\includegraphics[width=5.6cm]{images/eg1_2up.png}}}\\
+%(a)&(b)&(c)
+%\end{tabular}
+%\caption{It is often a good idea for the first figure to attempt to
+%encapsulate the article, complementing the abstract.  This figure illustrates
+%the various print and on-screen layouts for which this paper format has
+%been optimized: (a) traditional BMVC print format; (b) on-screen
+%single-column format, or large-print paper; (c) full-screen two column, or
+%2-up printing. }
+%\label{fig:teaser}
+%\end{figure}
+
+%\begin{figure*}
+%\begin{center}
+%\fbox{\rule{0pt}{2in} \rule{.9\linewidth}{0pt}}
+%\end{center}
+%   \caption{Example of a short caption, which should be centered.}
+%\label{fig:short}
+%\end{figure*}
+
+%\begin{table}
+%\begin{center}
+%\begin{tabular}{|l|c|}
+%\hline
+%Method & Frobnability \\
+%\hline\hline
+%Theirs & Frumpy \\
+%Yours & Frobbly \\
+%Ours & Makes one's heart Frob\\
+%\hline
+%\end{tabular}
+%\end{center}
+%\caption{Results.   Ours is better.}
+%\end{table}
+
+\bibliography{hclbib}
+\end{document}

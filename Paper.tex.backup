@@ -1,0 +1,444 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%2345678901234567890123456789012345678901234567890123456789012345678901234567890
+%        1         2         3         4         5         6         7         8
+
+%\documentclass[letterpaper, 10 pt, conference]{ieeeconf}  % Comment this line out
+                                                          % if you need a4paper
+\documentclass[a4paper, 10pt, conference]{ieeeconf}      % Use this line for a4
+                                                          % paper
+\usepackage{epsf,graphicx}
+\usepackage{latexsym,amssymb, amsmath}
+\usepackage{url}
+
+% \IEEEoverridecommandlockouts                              % This command is only
+%                                                           % needed if you want to
+%                                                           % use the \thanks command
+\overrideIEEEmargins
+% See the \addtolength command later in the file to balance the column lengths
+% on the last page of the document
+
+
+
+% The following packages can be found on http:\\www.ctan.org
+%\usepackage{graphics} % for pdf, bitmapped graphics files
+%\usepackage{epsfig} % for postscript graphics files
+%\usepackage{mathptmx} % assumes new font selection scheme installed
+%\usepackage{times} % assumes new font selection scheme installed
+%\usepackage{amsmath} % assumes amsmath package installed
+%\usepackage{amssymb}  % assumes amsmath package installed
+
+\title{\LARGE \bf
+MSc. Thesis -- Scene layout segmentation of traffic environments
+}
+
+%\author{ \parbox{3 in}{\centering Huibert Kwakernaak*
+%         \thanks{*Use the $\backslash$thanks command to put information here}\\
+%         Faculty of Electrical Engineering, Mathematics and Computer Science\\
+%         University of Twente\\
+%         7500 AE Enschede, The Netherlands\\
+%         {\tt\small h.kwakernaak@autsubmit.com}}
+%         \hspace*{ 0.5 in}
+%         \parbox{3 in}{ \centering Pradeep Misra**
+%         \thanks{**The footnote marks may be inserted manually}\\
+%        Department of Electrical Engineering \\
+%         Wright State University\\
+%         Dayton, OH 45435, USA\\
+%         {\tt\small pmisra@cs.wright.edu}}
+%}
+
+\author{Fernando Cervigni Martinelli. A Thesis Submitted for the Degree of MSc Erasmus Mundus
+in Vision and\\ Robotics (VIBOT), carried out at the Honda Research Institute Europe GmbH% <-this % stops a space
+% \thanks{This work was not supported by any organization}% <-this % stops a space
+% \thanks{H. Kwakernaak is with Faculty of Electrical Engineering, Mathematics and Computer Science,
+%         University of Twente, 7500 AE Enschede, The Netherlands
+%         {\tt\small h.kwakernaak@autsubmit.com}}%
+% \thanks{P. Misra is with the Department of Electrical Engineering, Wright State University,
+%         Dayton, OH 45435, USA
+%         {\tt\small pmisra@cs.wright.edu}}%
+}
+
+
+\begin{document}
+
+
+
+\maketitle
+\thispagestyle{empty}
+\pagestyle{empty}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{abstract}
+
+At least 80\% of the traffic accidents in the whole world are caused by human mistakes. Whether drivers are too tired, drunk or speeding, most accidents have their root in the improper behavior of drivers. Many of these accidents would be avoided if cars were equipped with some kind of intelligent system able to detect wrong actions of the driver and autonomously intervene by temporarily controlling the car. Such an advanced driver assistance system needs to be able to understand the car environment and, from that information, predict the expected behavior of the driver at every instant. As a step towards scene understanding, a system has been implemented that is capable of performing semantic segmentation and classification of road scene video sequences. Some important classes for the prediction of the driver behavior are, for example, `road', `sidewalk', `car', `building' and so on. Our system builds on cutting-edge supervised segmentation and classification techniques, integrating, within a Conditional Random Field model, cues such as color, location, texture and also spatial context between classes. The CamVid database, which contains challenging inner-city road video sequences with very precise ground truth, has been used for assessing the quality of our segmentation and for the comparison with the state of the art.
+
+\end{abstract}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{INTRODUCTION}
+
+\subsection{Motivation}
+
+Within the Honda Research Institute Europe (HRI-EU), the Attentive Co-Pilot project (ACP) conducts research on a multi-function Advanced Driver Assistance System (ADAS). It is desired and to be expected that, in the future, cars will autonomously respond to inappropriate actions taken by the driver. If he or she does not stop the car when the traffic lights are red or falls asleep and slowly deviates from the normal driving course, the car should trigger an emergency procedure and somehow warn the driver. It would be even safer if the car had the capability of not only recognizing it and warning the driver when they act imprudently, but also of taking over control and safely correcting the driver's inappropriate actions in emergency situations.
+
+If, however, this Advanced Driver Assistance System is to become responsible for saving lives, in a critical real-time context, it cannot afford to fail. In order to manage the extremely challenging task of building such an intelligent system, many smaller problems have to be successfully tackled. One of the main ones is related to understanding and adequately representing the environment in which the car operates. For that, a variety of sensors and input data can be used. Indeed, participants of the DARPA Urban Challenge~\cite{darpa:darpa}, which requires autonomous vehicles to drive through specific routes in a restricted city scenario, rely on a wide range of sensors such as GPS, Radar, Lidar, inertial guidance systems as well as on the use of annotated maps.
+
+One of our aspirations, though, is to achieve the task of scene understanding by visual perception alone, using an off-the-shelf camera mounted in the car. We humans prove in our daily life as drivers that seeing the world is largely sufficient to achieve an understanding of the traffic environment.
+By ruling out the use of complicated equipment and sensing techniques, we aim at, once a reliable driver assistance system is achieved, manufacturing it cheap enough for it to be highly scalable. Considering their great potential of increasing the safety of drivers---and therefore also of pedestrians, bicyclists, and other traffic participants---, such advanced driver assistance systems will most likely become an indispensable car component, like today's seat-belts.
+
+\subsection{Relevance of segmentation} 
+
+A first step to understanding and representing the world surrounding the car is to segment the images acquired by the camera in meaningful regions and objects. In our case, meaningful regions are understood as the regions that are potentially relevant for the behavior of the driver. Examples of such regions are the road, sidewalks, other cars, traffic signs, pedestrians, bicyclists and so on. In order to correctly segment such meaningful regions, we need to consider semantic aspects of the scene rather than only its appearance, that is, even if the road consists of dark and bright regions because of shadows, it should still be segmented as only one semantic region. This can be achieved by supervised training using ground truth segmentation data. The work described in this paper aims at performing this task of semantic segmentation by exploring the most recent insights of researchers in the field, as well as well-known and state-of-the-art image processing and segmentation techniques. 
+
+% \begin{table}
+% \caption{An Example of a Table}
+% \label{table_example}
+% \begin{center}
+% \begin{tabular}{|c||c|}
+% \hline
+% One & Two\\
+% \hline
+% Three & Four\\
+% \hline
+% \end{tabular}
+% \end{center}
+% \end{table}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{PROBLEM DEFINITION}
+
+The main goal of this thesis project is to investigate and implement a system that segments images of road scenes, recognizing its different regions. More specifically, each input color image, $x \in G^{M\times N\times 3}$, where $G = \{ 0, 1, 2, \cdots, 255\}$ and $M$, $N$ are the image height and width, respectively, must be pixelwise segmented. That means that each pixel $i$ on the image has to be assigned one of $N$ pre-defined classes, also called labels, of a set $\mathcal L = \{ l_1, l_2, l_3, \cdots, l_N\}$
+
+As discussed in Section~\ref{chap:state_of_the_art}, this is achieved by supervised training, which means that the system is given labeled training images, from which it should learn in order to subsequently segment new, unseen images. According to state-of-the-art researchers, supervised segmentation techniques yield better results than unsupervised techniques (see Chapter~\ref{chap:state_of_the_art}). This is not surprising, since unsupervised segmentation techniques do not have ground truth information from which to \emph{learn} semantic properties, hence can only segment the images based on purely data-driven features.
+
+Figure~\ref{fig:ideal_segmentation} shows a typical inner-city road scene as considered in this thesis project, as well as its ideal segmentation. The ideal segmentation is taken from the CamVid dataset~\cite{brostow:camvid}. The CamVid database is a recently proposed image database with high-quality, manually-labeled ground truth which we use for our supervised training. The images have been acquired by a car-mounted camera, filming the scene in front of the car while driving in a city.
+
+\begin{figure}
+\centering{
+\begin{tabular}{cc}
+\includegraphics[height=2.5cm]{figures/road_scene_example.eps} &
+\includegraphics[height=2.5cm]{figures/road_scene_example_segmented.eps}\\
+(a)&(b)
+\end{tabular}
+}
+\caption[Example of ideal semantic segmentation and classification]{(a) An example of a typical inner-city road scene extracted from the CamVid database. (b) The corresponding manually labeled ground truth, taking into account classes like `road', `pedestrian', `sidewalk' and `sky', among others. The goal of the segmentation system to be implemented is to produce, given an image (a), an automatic segmentation that is as close as possible to the ground truth (b).}
+\label{fig:ideal_segmentation}
+\end{figure}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{STATE OF THE ART} \label{chap:state_of_the_art}
+
+Although the problem of image segmentation is old, the solution to many segmentation-related tasks remains under active investigation---in particular for image segmentation applied to highly complex real-world scenes (e.g. traffic scenes). This chapter describes some of the techniques for image segmentation that have been applied in related areas to the one investigated in this thesis project.
+
+\subsection{Features for image segmentation} \label{sec:features_for_segmentation}
+\subsubsection{Spatial prior knowledge} \label{subsec:location_features}
+
+One of the simplest but useful cues that may be explored when segmenting images in a supervised fashion is the location information of objects in the scene. For instance, the fact that the road is mostly at the lower part of pictures could be helpful for its segmentation. The same position cue applies for many classes like buildings and sky, which makes this feature powerful, despite its simplicity.
+
+\subsubsection{Coarse 3D cues} \label{subsec:3d_features}
+
+Different regions in an image have often different depths. Therefore, if available, the information of how far each point in the image was from the camera when the image was acquired can be very useful for segmentation purposes. 3D information can be inferred by using a stereo camera set or, in the case of an ordinary video sequence, by using structure-from-motion techniques~\cite{hartley:reconstruction_techniques}. 
+
+\subsubsection{Gradient-based edges}
+
+Some methods, like, for example, active contour snakes~\cite{Kass88snakes:active}, explore gradient-based edge information for segmentation. Figure~\ref{fig:edge_potential} shows an example picture of Lena and its gradient. The white pixels have a greater probability of being located on boundaries between labels in a segmentation. 
+
+\begin{figure}
+\centering{
+\begin{tabular}{cc}
+\includegraphics[scale=0.3,bb=0 0 256 256]{figures/Lenna.png} &
+\includegraphics[scale=0.3,bb=0 0 256 256]{figures/edge_potential_lenna.png}\\
+(a)&(b)
+\end{tabular}
+}
+\caption[Gradient-based edges]{(a) Original grayscale image of Lena. (b) Edge image obtained by calculating the image gradients. Edge based segmentation methods exploit the information in (b) to propose a meaningful segmentation of (a).}
+\label{fig:edge_potential}
+\end{figure}
+
+Notice that although this is a very reasonable and useful cue, it can also turn out to be misleading. When dealing, for example, with shadowed scenes, very often there are stronger edges inside regions that belong to the same label than there are on the boundaries between labels. This is particularly challenging for real-world scenes such as the traffic scenes considered in this thesis project.
+
+\subsubsection{Color distribution} \label{subsec:color_features}
+Early methods, like~\cite{saber:color} tackle the problem of image segmentation by relying solely on color features, which can be modeled as histogram distributions or by Gaussian Mixture Models (GMMs). A Gaussian Mixture Model represents a probability distribution, $P(x)$, which is obtained by summing different Gaussian distributions:
+\begin{equation}
+P(x) = \sum_k P_k(x)
+\end{equation}
+where
+\begin{equation}
+P_k(x) = \mathcal{N}(x|\mu_k,\Sigma_k)
+\end{equation}
+$\mu_k,\Sigma_k$ being the mean and variance of the individual Gaussian distribution $k$.
+
+The use of GMMs to model colors in images has also proven very efficient in binary foreground/background segmentation problems, as shown by Rother et al~\cite{rother:grab_cut} with their GrabCut algorithm.
+
+\subsubsection{Texture cues}
+
+Along with color, texture information is often considered and can bring significant improvement to the segmentation accuracy, as in~\cite{feng:color_tex}, where graylevel texture features were combined to color ones. Nowadays, most if not all the research effort on segmentation also incorporates texture information. This can be extracted and modeled, for instance, with Statistical Models~\cite{petillot:seabed} and also with filter-bank convolutions~\cite{malik:filter_bank}.
+
+\subsubsection{Context features} 
+
+Although color and texture may efficiently characterize image regions, they are far from enough for a high quality semantic segmentation if considered alone. For instance, even humans may be unable to tell apart, when looking only at a local patch of an image, a blue sky from the walls of a blue building. In the case of road scenes segmentation, typical spatial relationships between objects can be a very strong cue---for example, the fact that the car is always on the road, which, in turn, is normally surrounded by sidewalks. With this in mind, computer vision researchers are now frequently looking beyond local features and are more interested in contextual issues~\cite{feng:color_tex, re:multiscale_CRF, kumar:DRF}. Section~\ref{sec:TextonBoost} describes how we modeled and exploited context for semantic segmentation.
+
+\subsection{Example approach: TextonBoost} \label{sec:TextonBoost}
+
+One approach to image segmentation that is currently fundamental for state-of-the-art methods is TextonBoost~\cite{jamie:texton_boost}, by Shotton et al.. TextonBoost exploits location, color, texture and context cues, which are integrated in a Conditional Random Field (CRF) model. In this model, finding the segmentation (or labeling) of each unseen image corresponds to minimizing an energy function. In their research, Shotton et al. have used the Microsoft Research Cambridge (MSRC) database\footnote{http://research.microsoft.com/vision/cambridge/recognition/}, which is composed of 591 photographs with 21 object classes. Some results of TextonBoost's semantic segmentation on previously unseen images are shown in Figure~\ref{fig:textonboost_results}.
+
+\begin{figure}
+ \centering
+{\includegraphics[scale=0.25,bb=0 0 952 303]{figures/textonboost_results.png}}
+\caption[Sample results of TextonBoost]{TextonBoost results as in~\cite{jamie:texton_boost}. Above, unseen test images. Below, segmentation using a color-coded labeling. Textual labels are superimposed for better visualization.}
+\label{fig:textonboost_results}
+\end{figure}
+
+\subsection{Application to road scenes: Sturgess et al.} \label{sec:sturgess}
+
+In the more specific field of road scene segmentation, Sturgess et al.~\cite{sturgess:road_scene} have recently quite successfully segmented inner-city road scenes in 11 different classes. Their method builds on the work of Shotton et al. (see Section~\ref{sec:TextonBoost}) and on that of Brostow et al.~\cite{brostow:structure_from_motion} integrating the appearance-based features from TextonBoost with the structure-from-motion features from Brostow et al. (see Section~\ref{subsec:3d_features}) in a higher-order CRF. Sturgess et al. achieved an overall segmentation accuracy of $84\%$ compared to the previous state-of-the-art accuracy of $69\%$~\cite{brostow:structure_from_motion} on the challenging CamVid database~\cite{brostow:camvid}. The work of Sturgess is therefore especially important for this thesis as it successfully tackles the same inner-city scene segmentation problem.
+
+% Figure~\ref{fig:point_cloud}, extracted from the work of Brostow et al.~\cite{brostow:structure_from_motion}, shows how accurate the segmentation of road scenes can get only by using reconstructed 3D point clouds.
+% 
+% \begin{figure}
+%  \centering
+% {\includegraphics[height=3cm]{figures/point_cloud.eps}}
+% \caption[3D features]{The algorithm proposed by Brostow et al. uses 3D point clouds estimated from videos sequences and performs, using motion and structure features, a very satisfactory 11-class semantic segmentation.}
+% \label{fig:point_cloud}
+% \end{figure}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{METHODOLOGY} \label{chap:methodology}
+
+After thorough consideration of related work, CRFs have been deemed very suitable and up-to-date for dealing with the problem proposed in this thesis project. CRFs allow the incorporation of a big variety of cues in a single, unified model. Moreover, state-of-the-art works in the field of image segmentation (TextonBoost) and also more specifically in the domain of inner-city road scene understanding (Sturgess et al.) have used CRFs. Conditional Random Fields are defined after a short description of Markov Random Fields (MRFs), on which they are based.
+
+\subsection{Markov and Conditional Random Fields} \label{subsec:MRF}
+In the Markov Random Field theory, an image can be described by a lattice $\mathcal S$ composed of sites $i$, which can be thought of as the image pixels. The sites in $\mathcal S$ are related to one another via a neighborhood system, which is defined as ${\mathcal N}=\{{\mathcal N}_i, i \in \mathcal S\}$, where ${\mathcal N}_i$ is the set of sites neighbouring $i$.
+
+Let $y$ denote a labeling configuration of the lattice $\mathcal S$ belonging to the set of all possible labelings $\mathcal Y$. In the image segmentation context, $y$ can be seen as a labeling image, where each of the sites (or pixels) $i$ from the lattice $\mathcal S$ is assigned one label $y_i$ in the set of possible labels $\mathcal L = \{ l_1, l_2, l_3, \cdots, l_N\}$, which are the object classes. $(\mathcal S, \mathcal N)$ is said to be a Markov Random Field (MRF) if and only if
+\begin{equation}
+P(y)>0, \forall y \in \mathcal Y \textrm{, and}
+\end{equation}
+\begin{equation} \label{eq:markov_condition}
+P(y_i\vert y_{{\mathcal S}-\{i\}})=P(y_i\vert y_{{\mathcal N}_i}).
+\end{equation}
+
+That means, firstly, that the probability of any defined label configuration must be greater than zero\footnote{This assumption is usually taken for convenience, as it, in practical terms, does not influence the problem.} and, secondly and most importantly, that the probability of a site assuming a given label just depends on its neighboring sites, which is also known as the Markov condition.
+
+Now let us consider the observation $x_i$, for each site $i$, which is a state belonging to a set of possible states ${\mathcal W}=\{w_1, w_2, \cdots, w_n\}$. In this manner, we can represent the image we want to segment. If one thinks of a gray scale image with 8 bit-resolution, for example, the set of possible states for each site (or pixel) would be defined as $\mathcal W = \{ 0, 1, 2, \cdots, 255\}$. The segmentation problem then boils down to finding the labeling $y^*$ such that $P(y^*|x)$---the posterior probability of labeling $y^*$ given the observation $x$---is maximized.
+
+According to the Hammersley-Clifford theorem~\cite{besag:clifford_theorem}, an MRF like defined above can equivalently be characterized by a Gibbs distribution. Thus, the probability of a labeling $y$ given an observation $x$ can be written as
+\begin{equation} \label{gibbs} 
+P(y|x)=Z^{-1}\exp(-U(y|x)), 
+\end{equation}
+where $Z$ is a normalizing constant called the partition function, and $U(y|x)$ is an energy function of the form
+\begin{equation} \label{energy_u} 
+U(y|x)=\sum_{c \in \mathcal C}V_c({y|x}). 
+\end{equation}
+$\mathcal C$ is the set of all possible cliques and each clique $c$ has a clique potential $V_c(y|x)$ associated with it. A clique $c$ is defined as a subset of sites in $\mathcal S$ in which every pair of distinct sites are neighbours, with single-site cliques as a special case. Thanks to the Markov condition, the value of $V_c(y|x)$ depends only on the local configuration of clique $c$.
+
+The only difference between CRFs and MRFs is that CRFs directly model the posterior probability $P(y|x)$ while MRFs learn the underlying probabilities $P(x|y)$ and $P(y)$, arriving at the posterior distribution by applying the Bayes theorem.
+
+\subsection{CRF segmentation model proposed}
+
+We propose to model the CRF energy function $U(y|x,\theta)$ as:
+% \begin{equation} \label{eq:texture_layout_potential}
+% U(y|x,\theta) = 
+% \sum_i
+% \overbrace{\lambda(y_i,i;\theta_{\lambda})}^{location}
+% + \overbrace{\psi_i(y_i,\textbf{x};\theta_{\psi})}^{texture-layout} \cdots \\
+% \cdots + \sum_{(i,j)\in \varepsilon}\overbrace{\phi(y_i, y_j, g_{ij}(x);\theta_{\phi})}^{edge}
+% \end{equation}
+\begin{eqnarray}
+U(y|x,\theta) = 
+\sum_i
+\overbrace{\lambda(y_i,i;\theta_{\lambda})}^{location}
++ \overbrace{\psi_i(y_i,\textbf{x};\theta_{\psi})}^{texture-layout} \nonumber \\
++ \sum_{(i,j)\in \varepsilon}\overbrace{\phi(y_i, y_j, g_{ij}(x);\theta_{\phi})}^{edge}
+\end{eqnarray}
+where $y$ is the labeling or segmentation and $x$ is the unseen image to be segmented, $\varepsilon$ is the set of edges in a 4-connected neighborhood, $\theta = \{\theta_{\psi}, \theta_{\lambda}, \theta_{\phi}\}$ are the
+model parameters, and $i$ and $j$ index pixels in the image, which correspond to sites in the lattice of the Conditional Random Field. Notice that the model consists of two \emph{unary} potentials and one \emph{pairwise} potential.
+
+The location potential $\lambda$ is calculated based on the incidence, for all the training images, of each class at each pixel:
+\begin{equation}
+\lambda(y_i,i;\theta_{\lambda}) = \log \bigg( \frac{N_{y_i,i}+\alpha_\lambda}{N_{i}+\alpha_\lambda} \bigg)
+\end{equation}
+where $N_{y_i,i}$ is the number of pixels at position $i$ assigned class $y_i$ in the training images, $N_{i}$ is the total number of pixels at position $i$ and $\alpha_\lambda$ is a small integer to avoid the indefinition $\log (0)$ when $N_{y_i,i} = 0$.
+
+The pairwise edge potential $\phi$ does not depend on the training images. It has the form of a contrast sensitive Potts model~\cite{boykov:graph_cut}:
+\begin{equation} \label{eq:edge_potential}
+\phi(y_i, y_j, \textbf{g}_{ij}(\textbf{x});\theta_{\phi})=-\theta_{\phi}^T \textbf{g}_{ij}(\textbf{x})[y_i\ne y_j],
+\end{equation}
+with $[\cdot]$ the zero-one indicator function. The edge feature $\textbf{g}_{ij}$ measures the diference in color between the neighboring pixels, as suggested by~\cite{rother:grab_cut},
+\begin{equation}
+\textbf{g}_{ij}= 
+\begin{bmatrix}
+  \exp(-\beta \left \Vert x_i-x_j \right \|^2\\
+  1  
+\end{bmatrix}
+\end{equation}
+
+The texture-layout potential $\psi$ is defined as:
+\begin{equation}
+\psi_i(y_i,\textbf{x};\theta_{\psi}) = - \theta_{\psi_{\kappa}}.H(y_i,i)
+\end{equation}
+The confidence $H(y_i,i)$ is the output of a strong classifier found by boosting weak classifiers, 
+\begin{equation}
+H(y_i,i) = \sum_{m=1}^M h_{y_i}^m(i).
+\end{equation}
+Each weak classifier, in turn, is defined based on the response of a texture-layout filter $v_{\left [ r,t \right ] }(i)$ and a threshold $\theta$:
+\begin{equation} \label{eq:weak_classifier}
+h_{y_i}^m(i) = 
+\begin{cases} 
+a,& \mbox{if }v_{\left [ r,t \right ] }(i) > \theta\\
+b,& \mbox{otherwise,} 
+\end{cases}
+\end{equation}
+
+Texture-layout filters are based on the texton map $T$ of an image. To obtain this map, each of the training images is convolved with a 24-dimensional filter bank\footnote{The filter bank consists of Gaussians, derivatives of Gaussians and also Laplacians of Gaussians in many different scales and orientations.}. The responses for all training pixels are then whitened and clustered using a standard Euclidean-distance K-means algorithm. Finally, each pixel in an image is assigned to the nearest cluster center found with K-means, producing the image texton map $T$.
+
+The response of a texture-layout filter is then defined as:
+\begin{equation}
+v_{\left [ r,t \right ] }(i)= \frac{1}{\textnormal{area}(r)} \sum_{j \in(r+i)} \left [ T_j = t \right ].
+\end{equation}
+where the pair $(r, t)$ is composed of an image region, $r$, and a texton $t$, as illustrated in Figure~\ref{fig:texture_layout_filter}. Region $r$ is relatively referenced to the pixel $i$ being classified and texton $t$ belongs to the texton map $T$. 
+
+\begin{figure}
+\centering{
+\begin{tabular}{ccc}
+\includegraphics[height=1.8cm]{figures/tex_lay_a.eps} &
+\includegraphics[height=1.8cm]{figures/tex_lay_c.eps} &
+\includegraphics[height=1.8cm]{figures/tex_lay_e.eps}\\
+(a)&(b)&(c)
+\end{tabular}
+}
+\caption[Texture-layout filters]{Graphical explanation of texture-layout filters as in~\cite{jamie:texton_boost}. (a) An example image.	 (b) Texture-layout filters are defined relative to the point $i$ being classified (yellow cross). Region $r_1$ is combined with texton $t_1$ in blue. (c) The response $v_{\left [ r_1,t_1 \right ] }(i)$ is calculated at three positions in the texton map of the example image. On the left the response is 0, at the bottom-center the response is 0.5 and on the right it is 1. These features can learn that sheep pixels tend to be surrounded by grass pixels.
+}
+\label{fig:texture_layout_filter}
+\end{figure}
+% The feature response at pixel $i$ of texture-layout filter $(r, t)$ is the proportion of pixels under the offset region $r + i$ that have been assigned texton $t$ in the textonization process,
+
+\subsection{Energy minimization for label inference}
+Finding the labeling $y^*$ that maximizes the a posteriori probability expressed in (\ref{gibbs}) is equivalent to finding $y^*$ that minimizes the energy function in (\ref{energy_u}). An efficient way of finding a good approximation of the energy minimum of such functions is the alpha-expansion graph-cut algorithm~\cite{boykov:graph_cut}, which is widely used along with MRFs and CRFs. The idea of the alpha-expansion algorithm is to reduce the problem of minimizing a function like $U(y|x)$ with \emph{multiple labels} to a sequence of \emph{binary} minimization problems. These sub-problems  are referred to as `alpha-expansions' (for details see~\cite{boykov:graph_cut}).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{RESULTS}
+In this section we investigate the performance of our semantic segmentation system on the challenging CamVid dataset. The effect of different aspects and parameters of the model is discussed before we present and analyse quantitatively and qualitatively the results obtained.
+
+\subsection{Influence of number of weak classifiers}
+The boosting scheme used to select the weak classifiers defined in (\ref{eq:weak_classifier}) garantees that the target function, that is, the labeling of the training images, is approximated with an increasing number of weak classifiers. However, the quality of the segmentation of unseen, test images seems to have a clear upperboundary, like shown if Figure~\ref{fig:segmentation_quality_x_weak_classifiers}. 
+
+\begin{figure}
+\centering{
+\begin{tabular}{cc}
+\includegraphics[scale=0.32,bb=0 0 340 282]{figures/segmentation_quality_x_weak_classifiers_error.png} & 
+\includegraphics[scale=0.32,bb=0 0 340 282]{figures/segmentation_quality_x_weak_classifiers_accuracy.png}\\
+(a)&(b)
+\end{tabular}
+}
+\caption[Influence of number of weak classifiers on segmentation accuracy]{(a) Notice how the training error with respect to target function, that is, the ground truth labeling of the training images, decreases exponentially with the number of weak classifiers. (b) The segmentation accuracy for unseen test images, however, seems to be bound to 92\%. These accuracies have been calculated by segmenting the images only using the texture-layout potential.}
+\label{fig:segmentation_quality_x_weak_classifiers}
+\end{figure}
+
+\subsection{Influence of the different model potentials}
+Although all the different potentials included in the model contribute to the final quality of the segmentation, we observed that the most important contribution comes from the texture-layout potential. This potential alone correctly segments the bulk of the scene, lacking however coherent and smooth boundaries as this aspect is not explicitly modeled in the texture-layout features. The edge potential, on the other hand, is responsible for better delineation of boundaries by smoothing them and making them stick to existing edges in the input image. The location potential is also important to correct wrongly segmented regions by the texture-layout potential. Figure~\ref{fig:influence_of_potentials} shows how perceived segmentation quality and pixelwise accuracy---which is obtained by dividing the number of pixels correctly classified by the total number of pixels---increase as we add all potentials.
+
+\begin{figure}
+\centering{
+\begin{tabular}{cc}
+\includegraphics[scale=0.25,bb=0 0 400 300]{figures/influence_of_potentials_a.png} & %original
+\includegraphics[scale=0.25,bb=0 0 400 300]{figures/influence_of_potentials_c.png}\\ %tex_lay
+(a)&(c)\\
+\includegraphics[scale=0.25,bb=0 0 400 300]{figures/influence_of_potentials_b.png} & %gt label 
+\includegraphics[scale=0.25,bb=0 0 400 300]{figures/influence_of_potentials_f.png}\\ %all
+(b)&(d)
+\end{tabular}
+}
+\caption[Influence of the different potentials on segmentation quality]{(a)~Original image to be segmented. (b)~Manually labeled ground truth provided by the CamVid dataset. (c)~Segmentation obtained by using only the texture-layout potential, with overall accuracy of 90.7\%. (d)~Segmentation obtained with all potentials combined, with overall accuracy of 92.9\%. Notice how the segmentation is spatially coherent and has smooth boundaries as opposed to (c). Although the overall accuracy has only increased 2.2\% from (c) to (d), the perceptual quality is significantly better.}
+\label{fig:influence_of_potentials}
+\end{figure}
+
+\subsection{CamVid sequences}
+
+The CamVid database is composed of four sequences of inner-city road scenes. Three of them have been recorded during the day, with good sun illumination, and the fourth one as it was getting dark. The four sequences are described in table~\ref{table:camvid_sequences}.
+
+\begin{table}
+ \centering
+\begin{tabular}{ | l | c | r | }
+\hline			
+  Type & Seq. Name & \# Images\\
+  \hline	
+  \hline	
+  Day & Seq05VD & 171 \\
+  \hline	
+  Day & 0016E5 & 305 \\
+  \hline	
+  Day & 0006R0 & 101 \\
+  \hline	
+  Dusk & 0001TP & 124\\
+\hline
+\end{tabular}
+\caption{CamVid database sequences.}
+\label{table:camvid_sequences}
+\end{table}
+
+All sequences have been tested separately. For each of them, the first half has been used for training and the second half for testing. Table~\ref{table:overall_accuracies} shows the overall accuracies obtained when segmenting the images in four different classes---`road', `sidewalk', `others' and `sky---and also in eleven different classes---`Building', `Tree', `Sky', `Car', `Sign-Symbol', `Road', `Pedestrian', `Fence', `Column-pole', `Sidewalk' and `Bicyclist'.
+
+\begin{table}
+ \centering
+\begin{tabular}{ | l | c | c | }
+\hline			
+  Seq. Name & 4-class acc.(\%) & 11-class acc.(\%)\\
+  \hline	
+  \hline	
+  Seq05VD & 92.5 & 81.4 \\
+  \hline	
+  0016E5 & 92.4 & 71.0\\
+  \hline	
+  0006R0 & 91.4 & 65.7\\
+  \hline	
+  0001TP & 90.9 & 73.6\\
+\hline
+\end{tabular}
+\caption{Overall pixel accuracies achieved for each sequence with both 4 and 11-class segmentations.}
+\label{table:overall_accuracies}
+\end{table}
+
+Some examples of 4 and 11-class segmentations from pictures in the CamVid dataset are shown in Figure~\ref{fig:segmentation_examples}.
+
+\begin{figure}[htb]
+\centering{
+\begin{tabular}{ccc}
+(a)&(b)&(c)\\
+\includegraphics[scale=0.17,bb=0 0 400 300]{figures/examples_4_c_1_original.png} &
+\includegraphics[scale=0.17,bb=0 0 400 300]{figures/examples_4_c_1_label.png} &
+\includegraphics[scale=0.17,bb=0 0 400 300]{figures/examples_4_c_1_segmentation.png}\\
+\includegraphics[scale=0.17,bb=0 0 400 300]{figures/examples_4_c_2_original.png} &
+\includegraphics[scale=0.17,bb=0 0 400 300]{figures/examples_4_c_2_label.png} &
+\includegraphics[scale=0.17,bb=0 0 400 300]{figures/examples_4_c_2_segmentation.png}\\
+\includegraphics[scale=0.17,bb=0 0 400 300]{figures/examples_4_c_6_original.png} &
+\includegraphics[scale=0.17,bb=0 0 400 300]{figures/examples_4_c_6_label.png} &
+\includegraphics[scale=0.17,bb=0 0 400 300]{figures/examples_4_c_6_segmentation.png}\\
+\includegraphics[scale=0.17,bb=0 0 400 300]{figures/examples_11_c_1_original.png} &
+\includegraphics[scale=0.17,bb=0 0 400 300]{figures/examples_11_c_1_label.png} &
+\includegraphics[scale=0.17,bb=0 0 400 300]{figures/examples_11_c_1_segmentation.png}\\
+\includegraphics[scale=0.17,bb=0 0 400 300]{figures/examples_11_c_4_original.png} &
+\includegraphics[scale=0.17,bb=0 0 400 300]{figures/examples_11_c_4_label.png} &
+\includegraphics[scale=0.17,bb=0 0 400 300]{figures/examples_11_c_4_segmentation.png}\\
+\includegraphics[scale=0.17,bb=0 0 400 300]{figures/examples_11_c_5_original.png} &
+\includegraphics[scale=0.17,bb=0 0 400 300]{figures/examples_11_c_5_label.png} &
+\includegraphics[scale=0.17,bb=0 0 400 300]{figures/examples_11_c_5_segmentation.png}\\
+
+\end{tabular}
+}
+\caption{(a) Example of images from the CamVid dataset to be segmented. (b) For the first 3 rows, ground truth annotation for the 4-class set segmentation. For the last 3 rows, ground truth annotation for the 11-class set. (c) Our segmentation (first 3 rows with 4 classes and last 3 with 11 classes) using all three potentials implemented: texture-layout, edge and location. Note how the most important classes like `road' and `sidewalk' are very well segmented, as well as cars in the 11-class set.}
+\label{fig:segmentation_examples}
+\end{figure}
+
+\addtolength{\textheight}{-1.5cm}   % This command serves to balance the column lengths
+                                  % on the last page of the document manually. It shortens
+                                  % the textheight of the last page by a suitable amount.
+                                  % This command does not take effect until the next page
+                                  % so it should come on the page before the last. Make
+                                  % sure that you do not shorten the textheight too much.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{CONCLUSIONS AND FUTURE
